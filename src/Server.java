@@ -1,7 +1,10 @@
+import javax.swing.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
     private Parser parser;
@@ -14,7 +17,7 @@ public class Server {
     private int y;
     private int inf_n;
     private int devider;
-    byte[] resultArray;
+    byte[] subResultArray;
     int[] subResultArray1D;
     int[][] subResultArray2D;
     double xStepSize;
@@ -23,6 +26,7 @@ public class Server {
 
     byte[] returnArray;
     ArrayList<String> workPackageList = new ArrayList<>();
+    ArrayList<Coordinate> subAreaCoordinates = new ArrayList<>();
     ServerSocket listener;
     Socket socket;
     ObjectOutputStream outputObject;
@@ -34,6 +38,7 @@ public class Server {
         listener = new ServerSocket(port);
         socket = listener.accept();
         System.out.println("accept körd");
+        // todo put in separate method, try with resouces and catch IOException
         outputObject = new ObjectOutputStream(socket.getOutputStream());
         input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         receiveWork();
@@ -41,14 +46,45 @@ public class Server {
         handleWorkPackage();
 
 
+
+
+
+
+        final BufferedImage image = new BufferedImage(200, 200, BufferedImage.TYPE_BYTE_GRAY);
+        image.getRaster().setDataElements(0, 0, 200, 200, subResultArray);
+
+        SwingUtilities.invokeLater(new
+
+                                           Runnable() {
+                                               @Override
+                                               public void run() {
+                                                   JFrame frame = new JFrame(getClass().getSimpleName());
+                                                   frame.add(new JLabel(new ImageIcon(image)));
+                                                   frame.setSize(400, 400);
+                                                   frame.setResizable(true);
+                                                   frame.pack();
+                                                   frame.setLocationRelativeTo(null);
+                                                   frame.setVisible(true);
+
+                                               }
+                                           });
+
+
     }
+
     // todo här ska all magic ske
     public void handleWorkPackage() {
         for (String s : workPackageList) {
             appendVariables(s);
             System.out.println("printat from privat variabel: " + this.min_c_re);
             // todo här ska beräkning ske i varje iteration
-            populate2dArrayReverse();
+
+//            populate2dArrayReverse();
+
+
+            getSubAreaCoordinates();
+            calculateSubArea();
+
 
         }
     }
@@ -60,6 +96,7 @@ public class Server {
             workPackageList.add(userInput);
         }
     }
+
 
     public void appendVariables(String s) {
         this.tempWorkPak = s.split(" ");
@@ -174,8 +211,62 @@ public class Server {
         }
     }
 
+    // subAreaCoordinates
+    public void getSubAreaCoordinates() {
+
+        double xInterval = Math.abs(max_c_re - min_c_re);
+        double yInterval = Math.abs(max_c_im - min_c_im);
+
+        double tempX = min_c_re;
+        double tempY = max_c_im;
+
+        double xAdd;
+        double ySub;
+
+        int x = (int) xStepSize;
+        int y = (int) yStepSize;
+        subResultArray1D = new int[x * y];
+        subResultArray2D = new int[x][y];
+
+        twoDInputArray = new Coordinate[x][y];
+        int counter = 0;
+        for (int i = 0; i < y; i++) {
+            if (i != 0) {
+                ySub = (yInterval / (x - 1));
+                tempY = tempY - ySub;
+            }
+            tempX = min_c_re; // restart x value for the next row
+            for (int j = 0; j < x; j++) {
+//                twoDInputArray[i][j] = new Coordinate(tempX, tempY);
+                subAreaCoordinates.add(new Coordinate(tempX, tempY));
+                subResultArray1D[counter] = calculatePoint(tempX, tempY);
+                xAdd = (xInterval / (y - 1));
+                tempX = tempX + xAdd;
+                counter++;
+
+            }
+        }
+    }
+
+    public void calculateSubArea() {
+
+        int arraySize = (int) xStepSize * (int) yStepSize;
+        subResultArray = new byte[arraySize];
+        int counter = 0;
+        try {
+            for (Coordinate c : this.subAreaCoordinates) {
+                subResultArray[counter] = this.convertToPGMRangeByte(calculatePoint(c.x, c.y), inf_n);
+                counter++;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Index vid outofbounce: " + counter);
+            e.printStackTrace();
+        }
+    }
+
+
     // convert no of itterations to signed byte range
-    public static byte convertToPGMRangeByte(double input, double inf_n) {
+    public byte convertToPGMRangeByte(double input, double inf_n) {
         int pgmMaxValue = 255;
         if (input == 0) return 0;
         double coefficient = pgmMaxValue / inf_n;
