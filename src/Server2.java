@@ -92,6 +92,7 @@ public class Server2 {
         }
     }
 
+    //todo make it dynamic!!!
     public void receiveWork() throws IOException {
         String userInput;
 //        while ((userInput = input.readLine()) != null) {

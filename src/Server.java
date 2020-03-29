@@ -77,6 +77,7 @@ public class Server {
 
     // todo här ska all magic ske
     public void handleWorkPackage() {
+        int counter = 0;
         for (String s : workPackageList) {
             appendVariables(s);
             System.out.println("printat from privat variabel: " + this.min_c_re);
@@ -87,8 +88,13 @@ public class Server {
 
             getSubAreaCoordinates(); // tar bara en subArea
             calculateSubArea();
-
-
+//            subResultList
+//            String fileName = "delReaultat" + counter + ".pgm";
+//            try {
+//                createFile(fileName, counter);
+//                counter++;
+//            } catch (FileNotFoundException e){}
+//            System.out.println("fil not fund");
         }
     }
 
@@ -96,12 +102,12 @@ public class Server {
     public void receiveWork() throws IOException {
         String userInput;
 //        while ((userInput = input.readLine()) != null) {
-        for (int i = 0; i <2 ; i++) {
+        for (int i = 0; i < 2; i++) {
 
 
-        userInput = input.readLine();
-        System.out.println(userInput);
-        workPackageList.add(userInput);
+            userInput = input.readLine();
+            System.out.println(userInput);
+            workPackageList.add(userInput);
         }
 //        }
     }
@@ -352,5 +358,38 @@ public class Server {
             dOut.writeInt(b.length);            // write length of the message
             dOut.write(b);                       // write the message
         }
+    }
+
+    public void createFile(String filename, int counter) throws FileNotFoundException {
+        int maxvall = 255;
+
+        PrintWriter pw = new PrintWriter(filename);
+        int width = (int) this.xStepSize;
+        int height = (int) this.yStepSize;
+
+        // magic number, width, height, and maxval
+        pw.println("P2");
+        pw.println(width + " " + height);
+        pw.println(maxvall);
+
+        // print out the data, limiting the line lengths to 70 characters
+        int lineLength = 0;
+
+//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
+
+            for (int i = 0; i < subResultList.get(counter).length; i++) {
+                int value = subResultList.get(counter)[i] & 0xff;
+
+                String stringValue = "" + value;
+                int currentLength = stringValue.length() + 1;
+                if (currentLength + lineLength > 70) {
+                    pw.println();
+                    lineLength = 0;
+                }
+                lineLength += currentLength;
+                pw.print(value + " ");
+            }
+
+        pw.close();
     }
 }

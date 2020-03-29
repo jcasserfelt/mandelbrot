@@ -1,4 +1,5 @@
 import java.io.DataInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -63,6 +64,8 @@ public class Client {
             receiveAnything();
             System.out.println("subArrayList: " + subArrayList.size());
             System.out.println("workpackList: " + workPackages.size());
+//            createFile("result.pgm");
+            createSubResultImages();
 //            out = new PrintWriter(socket.getOutputStream(), true);
 //            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -293,6 +296,108 @@ public class Client {
 
         for (PrintWriter p : connectionOutList) {
 //            p.close();
+        }
+    }
+
+    public void makeImage() {
+
+    }
+
+    /**
+     * Creates a PGM file from the given image.
+     *
+     * @param filename name of the file to be created
+     * @throws FileNotFoundException
+     */
+    public void createFile(String filename) throws FileNotFoundException {
+        int maxvall = 255;
+
+        PrintWriter pw = new PrintWriter(filename);
+        int width = this.x;
+        int height = this.y;
+
+        // magic number, width, height, and maxval
+        pw.println("P2");
+        pw.println(width + " " + height);
+        pw.println(maxvall);
+
+        // print out the data, limiting the line lengths to 70 characters
+        int lineLength = 0;
+
+        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
+
+        for (byte[] b : subArrayList) {
+            for (int i = 0; i < b.length; i++) {
+                int value = b[i] & 0xff;
+
+                String stringValue = "" + value;
+                int currentLength = stringValue.length() + 1;
+                if (currentLength + lineLength > 70) {
+                    pw.println();
+                    lineLength = 0;
+                }
+                lineLength += currentLength;
+                pw.print(value + " ");
+            }
+        }
+        pw.close();
+
+//        for (int i = 0; i < height; ++i) {
+//            for (int j = 0; j < width; ++j) {
+//                int value = image[i][j];
+//
+//                // if we are going over 70 characters on a line,
+//                // start a new line
+//                String stringValue = "" + value;
+//                int currentLength = stringValue.length() + 1;
+//                if (currentLength + lineLength > 70) {
+//                    pw.println();
+//                    lineLength = 0;
+//                }
+//                lineLength += currentLength;
+//                pw.print(value + " ");
+//            }
+//        }
+//        pw.close();
+    }
+
+    public void createSubResultImages() throws FileNotFoundException {
+
+        int counter = 0;
+
+        for (byte[] b : subArrayList) {
+
+            int maxvall = 255;
+            String filename = "subResult" + counter + ".pgm";
+
+            PrintWriter pw = new PrintWriter(filename);
+            int width = (int) this.xStepSize;
+            int height = (int) this.yStepSize;
+
+            // magic number, width, height, and maxval
+            pw.println("P2");
+            pw.println(width + " " + height);
+            pw.println(maxvall);
+
+            // print out the data, limiting the line lengths to 70 characters
+            int lineLength = 0;
+
+//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
+
+            for (int i = 0; i < b.length; i++) {
+                int value = subArrayList.get(counter)[i] & 0xff;
+
+                String stringValue = "" + value;
+                int currentLength = stringValue.length() + 1;
+                if (currentLength + lineLength > 70) {
+                    pw.println();
+                    lineLength = 0;
+                }
+                lineLength += currentLength;
+                pw.print(value + " ");
+            }
+            pw.close();
+            counter++;
         }
     }
 }
