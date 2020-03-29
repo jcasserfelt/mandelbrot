@@ -345,7 +345,7 @@ public class Server2 {
 
         DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
 
-
+        System.out.println("Antal byte[] skickade från server2"+subResultList.size());
         for (byte[] b : subResultList) {
 //        byte[] message = subResultList.get(0);
             dOut = new DataOutputStream(socket.getOutputStream());

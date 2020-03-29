@@ -52,7 +52,7 @@ public class Server {
         // send byteArrayen
 
 
-        final BufferedImage image = new BufferedImage(400, 400, BufferedImage.TYPE_BYTE_GRAY);
+        BufferedImage image = new BufferedImage(400, 400, BufferedImage.TYPE_BYTE_GRAY);
         image.getRaster().setDataElements(0, 0, 400, 400, subResultArray);
 
         SwingUtilities.invokeLater(new
@@ -347,7 +347,7 @@ public class Server {
         }
     }
 
-    public void sendAnything() throws IOException {
+    private void sendAnything() throws IOException {
 
         DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
 

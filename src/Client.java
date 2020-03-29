@@ -1,7 +1,4 @@
-import java.io.DataInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -114,31 +111,6 @@ public class Client {
         } else System.out.println("Wrong input");
     }
 
-    // not needed
-    public void createSubArrays() {
-        double amountsOfArrays = this.devider * this.devider;  // ie 4
-        double totalElements = this.x * this.y;                  // ie 10000
-        for (int i = 0; i < amountsOfArrays; i++) {
-            this.subArrayList.add(new byte[(int) (totalElements / amountsOfArrays)]);
-        }
-    }
-
-    // trash
-    public void prepareDivisionBoundaries() {
-        String temp = "";
-        for (int i = 1; i <= devider * devider; i++) {
-            double min_c_re = this.min_c_re / (this.devider * this.devider) * i;
-            double min_c_im = this.min_c_im / (this.devider * this.devider) * i;
-            double max_c_re = this.max_c_re / (this.devider * this.devider) * i;
-            double max_c_im = this.max_c_im / (this.devider * this.devider) * i;
-            temp = String.format("%f %f %f %f %d %f %f", min_c_re, min_c_im, max_c_re, max_c_im, inf_n, xStepSize, yStepSize);
-            workPackages.add(temp);
-//            out.println(min_c_re);
-//            out.println(temp);
-//            out.println(inf_n);
-        }
-//        out.close();
-    }
 
     public void prepareWorkload() {
         double minX = this.min_c_re;
@@ -299,10 +271,6 @@ public class Client {
         }
     }
 
-    public void makeImage() {
-
-    }
-
     /**
      * Creates a PGM file from the given image.
      *
@@ -310,6 +278,143 @@ public class Client {
      * @throws FileNotFoundException
      */
     public void createFile(String filename) throws FileNotFoundException {
+        int maxvall = 255;
+
+        PrintWriter pw = new PrintWriter(filename);
+        int width = this.x;
+        int height = this.y;
+
+        // magic number, width, height, and maxval
+        pw.println("P2");
+        pw.println(width + " " + height);
+        pw.println(maxvall);
+
+        // print out the data, limiting the line lengths to 70 characters
+        int lineLength = 0;
+
+
+        // re-arrange pixels to fit combined result image
+        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
+        byte[] testArray = new byte[imagesize];
+        int testCounter = 0;
+        int indexAdjuster = 0;
+        ArrayList<ArrayList<byte[]>> subAreaRows = new ArrayList<>();
+        ArrayList<byte[]> tempList = new ArrayList<>();
+        for (int i = 0; i < devider; i++) {
+
+            for (int j = 0; j < devider; j++) {
+                tempList.add(subArrayList.get(j + indexAdjuster));
+            }
+            subAreaRows.add(tempList);
+            indexAdjuster = +devider;
+            tempList = new ArrayList<>();
+        }
+
+        for (ArrayList<byte[]> list : subAreaRows) {        // 1 och 2
+            for (int i = 1; i <= yStepSize; i++) {
+                for (int j = 0; j < devider; j++) {
+                    for (int k = 0; k < xStepSize; k++) {
+                        testArray[testCounter] = list.get(j)[k * i];
+                        testCounter++;
+                    }
+
+                }
+
+            }
+
+
+//            int rowsOfSubAreas = devider;
+//            int columnsOfSubArea = devider;
+//            int rowsPerSubArea = (int) yStepSize;
+//            int columnsPerSubArea = (int) xStepSize;
+//            byte tempByte;
+//            int indexAdjuster = 1;
+//            for (int i = 1; i <= rowsOfSubAreas; i++) {                         // 2
+//                for (int j = 1; j <= rowsPerSubArea; j++) {                     // 400
+//                    for (int k = 0; k < columnsOfSubArea; k++) {               // 2
+//                        for (int l = 0; l < columnsPerSubArea; l++) {           // 400
+//                            if (i == 1) {
+//                                tempByte = subArrayList.get((k * i))[l * j];
+//                                testArray[testCounter] = subArrayList.get(k * i)[l * j];
+//                            } else if (i == 2) {
+//                                tempByte = subArrayList.get((k + i))[l * j];
+//                                testArray[testCounter] = subArrayList.get(k * i)[l * j];
+//                            }
+//                            testCounter++;
+//                        }
+//                    }
+//                }
+//                indexAdjuster++;
+//            }
+
+
+            try {
+                for (int i = 0; i < testArray.length; i++) {
+                    int value = testArray[i] & 0xff;
+
+                    String stringValue = "" + value;
+                    int currentLength = stringValue.length() + 1;
+                    if (currentLength + lineLength > 70) {
+                        pw.println();
+                        lineLength = 0;
+                    }
+                    lineLength += currentLength;
+                    pw.print(value + " ");
+                }
+
+            } catch (IndexOutOfBoundsException e) {
+                System.out.println("out of bounce vid index: " + testCounter);
+            }
+            pw.close();
+        }
+    }
+
+    public void createSubResultImages() throws IOException {
+
+
+        int counter = 0;
+
+        for (byte[] b : subArrayList) {
+
+            int maxvall = 255;
+            String filename = "subResult" + (counter+1) + ".pgm";
+            String key = "subResult";
+//            File file = File.createTempFile(key,".pgm",new File("Results"));
+            File file = new File("Results" + File.separator + filename);
+
+
+            PrintWriter pw = new PrintWriter(file);
+            int width = (int) this.xStepSize;
+            int height = (int) this.yStepSize;
+
+            // magic number, width, height, and maxval
+            pw.println("P2");
+            pw.println(width + " " + height);
+            pw.println(maxvall);
+
+            // print out the data, limiting the line lengths to 70 characters
+            int lineLength = 0;
+
+//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
+
+            for (int i = 0; i < b.length; i++) {
+                int value = subArrayList.get(counter)[i] & 0xff;
+
+                String stringValue = "" + value;
+                int currentLength = stringValue.length() + 1;
+                if (currentLength + lineLength > 70) {
+                    pw.println();
+                    lineLength = 0;
+                }
+                lineLength += currentLength;
+                pw.print(value + " ");
+            }
+            pw.close();
+            counter++;
+        }
+    }
+
+    public void createFile2(String filename) throws FileNotFoundException {
         int maxvall = 255;
 
         PrintWriter pw = new PrintWriter(filename);
@@ -341,63 +446,5 @@ public class Client {
             }
         }
         pw.close();
-
-//        for (int i = 0; i < height; ++i) {
-//            for (int j = 0; j < width; ++j) {
-//                int value = image[i][j];
-//
-//                // if we are going over 70 characters on a line,
-//                // start a new line
-//                String stringValue = "" + value;
-//                int currentLength = stringValue.length() + 1;
-//                if (currentLength + lineLength > 70) {
-//                    pw.println();
-//                    lineLength = 0;
-//                }
-//                lineLength += currentLength;
-//                pw.print(value + " ");
-//            }
-//        }
-//        pw.close();
-    }
-
-    public void createSubResultImages() throws FileNotFoundException {
-
-        int counter = 0;
-
-        for (byte[] b : subArrayList) {
-
-            int maxvall = 255;
-            String filename = "subResult" + counter + ".pgm";
-
-            PrintWriter pw = new PrintWriter(filename);
-            int width = (int) this.xStepSize;
-            int height = (int) this.yStepSize;
-
-            // magic number, width, height, and maxval
-            pw.println("P2");
-            pw.println(width + " " + height);
-            pw.println(maxvall);
-
-            // print out the data, limiting the line lengths to 70 characters
-            int lineLength = 0;
-
-//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
-
-            for (int i = 0; i < b.length; i++) {
-                int value = subArrayList.get(counter)[i] & 0xff;
-
-                String stringValue = "" + value;
-                int currentLength = stringValue.length() + 1;
-                if (currentLength + lineLength > 70) {
-                    pw.println();
-                    lineLength = 0;
-                }
-                lineLength += currentLength;
-                pw.print(value + " ");
-            }
-            pw.close();
-            counter++;
-        }
     }
 }
