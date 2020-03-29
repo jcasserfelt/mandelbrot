@@ -27,31 +27,33 @@ public class Server {
     byte[] returnArray;
     ArrayList<String> workPackageList = new ArrayList<>();
     ArrayList<Coordinate> subAreaCoordinates = new ArrayList<>();
+    ArrayList<byte[]> subResultList = new ArrayList<>();
     ServerSocket listener;
     Socket socket;
     ObjectOutputStream outputObject;
     BufferedReader input;
     String[] tempWorkPak;
+    private DataOutputStream out;
 
     Server(int port) throws IOException {
-        // todo kanske kora parsning metoder i denna klass?
         listener = new ServerSocket(port);
         socket = listener.accept();
-        System.out.println("accept körd");
         // todo put in separate method, try with resouces and catch IOException
-        outputObject = new ObjectOutputStream(socket.getOutputStream());
+//        outputObject = new ObjectOutputStream(socket.getOutputStream());
         input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         receiveWork();
         System.out.println("stringList size: " + workPackageList.size());
         handleWorkPackage();
 
 
+        sendAnything();
+        System.out.println("result sent");
+//        sendResultsBack();
+        // send byteArrayen
 
 
-
-
-        final BufferedImage image = new BufferedImage(200, 200, BufferedImage.TYPE_BYTE_GRAY);
-        image.getRaster().setDataElements(0, 0, 200, 200, subResultArray);
+        final BufferedImage image = new BufferedImage(400, 400, BufferedImage.TYPE_BYTE_GRAY);
+        image.getRaster().setDataElements(0, 0, 400, 400, subResultArray);
 
         SwingUtilities.invokeLater(new
 
@@ -72,6 +74,7 @@ public class Server {
 
     }
 
+
     // todo här ska all magic ske
     public void handleWorkPackage() {
         for (String s : workPackageList) {
@@ -82,19 +85,25 @@ public class Server {
 //            populate2dArrayReverse();
 
 
-            getSubAreaCoordinates();
+            getSubAreaCoordinates(); // tar bara en subArea
             calculateSubArea();
 
 
         }
     }
 
+    //todo make it dynamic!!!
     public void receiveWork() throws IOException {
         String userInput;
-        while ((userInput = input.readLine()) != null) {
-            System.out.println(userInput);
-            workPackageList.add(userInput);
+//        while ((userInput = input.readLine()) != null) {
+        for (int i = 0; i <2 ; i++) {
+
+
+        userInput = input.readLine();
+        System.out.println(userInput);
+        workPackageList.add(userInput);
         }
+//        }
     }
 
 
@@ -115,12 +124,14 @@ public class Server {
         Server server1 = new Server(8001);
     }
 
+    // not used
     public void mandelCalc(ArrayList<String> input) {
         int subArrayLenght = (int) (xStepSize * yStepSize);
         byte[] temp = new byte[subArrayLenght];
         int[] intArray = new int[subArrayLenght];
     }
 
+    // not used
     public int countIterations(double x, double y, int inf_n) {
         // The Mandelbrot set is represented by coloring
         // each point (x,y) according to the number of
@@ -176,6 +187,7 @@ public class Server {
         }
     }
 
+    // obsolete
     public void populate2dArrayReverse() {
 
         double xInterval = Math.abs(max_c_re - min_c_re);
@@ -214,6 +226,8 @@ public class Server {
     // subAreaCoordinates
     public void getSubAreaCoordinates() {
 
+        subAreaCoordinates = null;
+        subAreaCoordinates = new ArrayList<>();
         double xInterval = Math.abs(max_c_re - min_c_re);
         double yInterval = Math.abs(max_c_im - min_c_im);
 
@@ -239,7 +253,7 @@ public class Server {
             for (int j = 0; j < x; j++) {
 //                twoDInputArray[i][j] = new Coordinate(tempX, tempY);
                 subAreaCoordinates.add(new Coordinate(tempX, tempY));
-                subResultArray1D[counter] = calculatePoint(tempX, tempY);
+                subResultArray1D[counter] = calculatePoint(tempX, tempY); // remove asap
                 xAdd = (xInterval / (y - 1));
                 tempX = tempX + xAdd;
                 counter++;
@@ -254,18 +268,18 @@ public class Server {
         subResultArray = new byte[arraySize];
         int counter = 0;
         try {
-            for (Coordinate c : this.subAreaCoordinates) {
-                subResultArray[counter] = this.convertToPGMRangeByte(calculatePoint(c.x, c.y), inf_n);
+            for (Coordinate tempCoordinate : this.subAreaCoordinates) {
+                subResultArray[counter] = this.convertToPGMRangeByte(calculatePoint(tempCoordinate.x, tempCoordinate.y), inf_n);
                 counter++;
             }
         } catch (IndexOutOfBoundsException e) {
             System.out.println("Index vid outofbounce: " + counter);
             e.printStackTrace();
         }
+        subResultList.add(subResultArray);
     }
 
-
-    // convert no of itterations to signed byte range
+    // convert no of iterations to signed byte range
     public byte convertToPGMRangeByte(double input, double inf_n) {
         int pgmMaxValue = 255;
         if (input == 0) return 0;
@@ -273,7 +287,6 @@ public class Server {
         byte result = (byte) (Math.floor(input * coefficient) + 1);
         return result;
     }
-
 
     public int calculatePoint(double x, double y) {
         int ITERATIONS = this.inf_n;
@@ -307,5 +320,37 @@ public class Server {
         }
 
         return ITERATIONS;
+    }
+
+    // obsolete
+    public void sendBackSubResult() throws IOException {
+        out = new DataOutputStream(socket.getOutputStream());
+        out.writeInt(subResultArray.length);
+        out.write(subResultArray);
+        out.close();
+    }
+
+    // obsolete ish
+    public void sendResultsBack() throws IOException {
+
+        for (byte[] b : subResultList) {
+            out = new DataOutputStream(socket.getOutputStream());
+            out.writeInt(b.length);
+            out.write(b);
+//            out.close();
+        }
+    }
+
+    public void sendAnything() throws IOException {
+
+        DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
+
+
+        for (byte[] b : subResultList) {
+//        byte[] message = subResultList.get(0);
+            dOut = new DataOutputStream(socket.getOutputStream());
+            dOut.writeInt(b.length);            // write length of the message
+            dOut.write(b);                       // write the message
+        }
     }
 }
