@@ -360,6 +360,7 @@ public class Server {
         }
     }
 
+    // not used
     public void createFile(String filename, int counter) throws FileNotFoundException {
         int maxvall = 255;
 

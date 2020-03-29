@@ -271,12 +271,17 @@ public class Client {
         }
     }
 
+
+
+
+
     /**
      * Creates a PGM file from the given image.
      *
      * @param filename name of the file to be created
      * @throws FileNotFoundException
      */
+    // does not work
     public void createFile(String filename) throws FileNotFoundException {
         int maxvall = 255;
 
@@ -414,6 +419,7 @@ public class Client {
         }
     }
 
+    // does not work
     public void createFile2(String filename) throws FileNotFoundException {
         int maxvall = 255;
 
