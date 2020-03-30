@@ -1,14 +1,12 @@
-import javax.swing.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.List;
 
-public class Server {
+public class Server extends Thread {
     private Parser parser;
 
+    private String stage;
     private double min_c_re;
     private double min_c_im;
     private double max_c_re;
@@ -31,7 +29,7 @@ public class Server {
     ServerSocket listener;
     Socket socket;
     ObjectOutputStream outputObject;
-    BufferedReader input;
+    BufferedReader bufferedReaderinput;
     String[] tempWorkPak;
     private DataOutputStream out;
 
@@ -40,7 +38,7 @@ public class Server {
         socket = listener.accept();
         // todo put in separate method, try with resouces and catch IOException
 //        outputObject = new ObjectOutputStream(socket.getOutputStream());
-        input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        bufferedReaderinput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         receiveWork();
         System.out.println("stringList size: " + workPackageList.size());
         handleWorkPackage();
@@ -52,30 +50,59 @@ public class Server {
         // send byteArrayen
 
 
-        BufferedImage image = new BufferedImage(400, 400, BufferedImage.TYPE_BYTE_GRAY);
-        image.getRaster().setDataElements(0, 0, 400, 400, subResultArray);
-
-        SwingUtilities.invokeLater(new
-
-                                           Runnable() {
-                                               @Override
-                                               public void run() {
-                                                   JFrame frame = new JFrame(getClass().getSimpleName());
-                                                   frame.add(new JLabel(new ImageIcon(image)));
-                                                   frame.setSize(400, 400);
-                                                   frame.setResizable(true);
-                                                   frame.pack();
-                                                   frame.setLocationRelativeTo(null);
-                                                   frame.setVisible(true);
-
-                                               }
-                                           });
+//        BufferedImage image = new BufferedImage(400, 400, BufferedImage.TYPE_BYTE_GRAY);
+//        image.getRaster().setDataElements(0, 0, 400, 400, subResultArray);
+//
+//        SwingUtilities.invokeLater(new
+//
+//                                           Runnable() {
+//                                               @Override
+//                                               public void run() {
+//                                                   JFrame frame = new JFrame(getClass().getSimpleName());
+//                                                   frame.add(new JLabel(new ImageIcon(image)));
+//                                                   frame.setSize(400, 400);
+//                                                   frame.setResizable(true);
+//                                                   frame.pack();
+//                                                   frame.setLocationRelativeTo(null);
+//                                                   frame.setVisible(true);
+//
+//                                               }
+//                                           });
 
 
     }
 
+    private void sendAnything() throws IOException {
+        // pause here until stage is "stage_ready_to_receive"
+
+        stage = bufferedReaderinput.readLine();
+        System.out.println(stage);
+
+
+
+
+
+//        DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
+
+//        while (!stage.equals("stage_WorkPackages_sent")){
+//
+//        }
+        DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
+        for (byte[] b : subResultList) {
+//        byte[] message = subResultList.get(0);
+
+            dOut.writeInt(b.length);            // write length of the message
+            System.out.println("server1 has sent lenght");
+            dOut.write(b);                       // write the message
+        }
+
+        stage = bufferedReaderinput.readLine();
+        System.out.println(stage);
+
+    }
 
     // todo här ska all magic ske
+
     public void handleWorkPackage() {
         int counter = 0;
         for (String s : workPackageList) {
@@ -105,11 +132,13 @@ public class Server {
         for (int i = 0; i < 2; i++) {
 
 
-            userInput = input.readLine();
+            userInput = bufferedReaderinput.readLine();
             System.out.println(userInput);
             workPackageList.add(userInput);
         }
-//        }
+
+        stage = bufferedReaderinput.readLine();
+        System.out.println(stage);
     }
 
 
@@ -129,15 +158,15 @@ public class Server {
     public static void main(String[] args) throws IOException {
         Server server1 = new Server(8001);
     }
-
     // not used
+
     public void mandelCalc(ArrayList<String> input) {
         int subArrayLenght = (int) (xStepSize * yStepSize);
         byte[] temp = new byte[subArrayLenght];
         int[] intArray = new int[subArrayLenght];
     }
-
     // not used
+
     public int countIterations(double x, double y, int inf_n) {
         // The Mandelbrot set is represented by coloring
         // each point (x,y) according to the number of
@@ -160,8 +189,8 @@ public class Server {
     }
 
     Coordinate[][] twoDInputArray;
-
     // obsolete
+
     public void populate2dArray() {
 
         double xInterval = Math.abs(max_c_re - min_c_re);
@@ -192,8 +221,8 @@ public class Server {
             }
         }
     }
-
     // obsolete
+
     public void populate2dArrayReverse() {
 
         double xInterval = Math.abs(max_c_re - min_c_re);
@@ -228,8 +257,8 @@ public class Server {
             }
         }
     }
-
     // subAreaCoordinates
+
     public void getSubAreaCoordinates() {
 
         subAreaCoordinates = null;
@@ -284,8 +313,8 @@ public class Server {
         }
         subResultList.add(subResultArray);
     }
-
     // convert no of iterations to signed byte range
+
     public byte convertToPGMRangeByte(double input, double inf_n) {
         int pgmMaxValue = 255;
         if (input == 0) return 0;
@@ -327,16 +356,16 @@ public class Server {
 
         return ITERATIONS;
     }
-
     // obsolete
+
     public void sendBackSubResult() throws IOException {
         out = new DataOutputStream(socket.getOutputStream());
         out.writeInt(subResultArray.length);
         out.write(subResultArray);
         out.close();
     }
-
     // obsolete ish
+
     public void sendResultsBack() throws IOException {
 
         for (byte[] b : subResultList) {
@@ -347,20 +376,7 @@ public class Server {
         }
     }
 
-    private void sendAnything() throws IOException {
 
-        DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
-
-
-        for (byte[] b : subResultList) {
-//        byte[] message = subResultList.get(0);
-            dOut = new DataOutputStream(socket.getOutputStream());
-            dOut.writeInt(b.length);            // write length of the message
-            dOut.write(b);                       // write the message
-        }
-    }
-
-    // not used
     public void createFile(String filename, int counter) throws FileNotFoundException {
         int maxvall = 255;
 
@@ -378,18 +394,18 @@ public class Server {
 
 //        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
 
-            for (int i = 0; i < subResultList.get(counter).length; i++) {
-                int value = subResultList.get(counter)[i] & 0xff;
+        for (int i = 0; i < subResultList.get(counter).length; i++) {
+            int value = subResultList.get(counter)[i] & 0xff;
 
-                String stringValue = "" + value;
-                int currentLength = stringValue.length() + 1;
-                if (currentLength + lineLength > 70) {
-                    pw.println();
-                    lineLength = 0;
-                }
-                lineLength += currentLength;
-                pw.print(value + " ");
+            String stringValue = "" + value;
+            int currentLength = stringValue.length() + 1;
+            if (currentLength + lineLength > 70) {
+                pw.println();
+                lineLength = 0;
             }
+            lineLength += currentLength;
+            pw.print(value + " ");
+        }
 
         pw.close();
     }

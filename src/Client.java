@@ -56,8 +56,9 @@ public class Client {
             connectionOutList = this.createOutStreams(socketList);
 
 //
-            devideWorkBetweenServers2();
             dataInputList = createInStreams(socketList);
+            devideWorkBetweenServers2();
+            System.out.println("utanfor reveic funktion");
             receiveAnything();
             System.out.println("subArrayList: " + subArrayList.size());
             System.out.println("workpackList: " + workPackages.size());
@@ -228,6 +229,14 @@ public class Client {
     }
 
     public void receiveAnything() throws IOException {
+
+        for (PrintWriter p : connectionOutList) {
+//            p.close();
+            p.println("stage_ready_to_receive");
+        }
+        // print writer: "" redy to receive results
+
+        System.out.println("inuti receive funktionen!");
         int counter = 0;
 
         for (int i = 0; i < workPackages.size(); i++) {
@@ -239,6 +248,10 @@ public class Client {
             }
             counter++;
             if (counter == dataInputList.size()) counter = 0;
+        }
+        for (PrintWriter p : connectionOutList) {
+//            p.close();
+            p.println("stage_results_received");
         }
     }
 
@@ -268,11 +281,9 @@ public class Client {
 
         for (PrintWriter p : connectionOutList) {
 //            p.close();
+            p.println("stage_WorkPackages_sent");
         }
     }
-
-
-
 
 
     /**
@@ -375,14 +386,10 @@ public class Client {
     }
 
     public void createSubResultImages() throws IOException {
-
-
         int counter = 0;
-
         for (byte[] b : subArrayList) {
-
             int maxvall = 255;
-            String filename = "subResult" + (counter+1) + ".pgm";
+            String filename = "subResult" + (counter + 1) + ".pgm";
             String key = "subResult";
 //            File file = File.createTempFile(key,".pgm",new File("Results"));
             File file = new File("Results" + File.separator + filename);
