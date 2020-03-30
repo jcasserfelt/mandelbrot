@@ -3,143 +3,73 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class Server2 extends Thread {
-    private Parser parser;
-
+public class Server2 {
     private String stage;
     private double min_c_re;
     private double min_c_im;
     private double max_c_re;
     private double max_c_im;
-    private int x;
-    private int y;
     private int inf_n;
-    private int devider;
-    byte[] subResultArray;
-    int[] subResultArray1D;
-    int[][] subResultArray2D;
-    double xStepSize;
-    double yStepSize;
-    String[] inputArray;
-
-    byte[] returnArray;
-    ArrayList<String> workPackageList = new ArrayList<>();
-    ArrayList<Coordinate> subAreaCoordinates = new ArrayList<>();
-    ArrayList<byte[]> subResultList = new ArrayList<>();
-    ServerSocket listener;
-    Socket socket;
-    ObjectOutputStream outputObject;
-    BufferedReader bufferedReaderinput;
-    String[] tempWorkPak;
-    private DataOutputStream out;
+    private byte[] subResultArray;
+    private int[] subResultArray1D;
+    private double xStepSize;
+    private double yStepSize;
+    private ArrayList<String> workPackageList = new ArrayList<>();
+    private ArrayList<Coordinate> subAreaCoordinates = new ArrayList<>();
+    private ArrayList<byte[]> subResultList = new ArrayList<>();
+    private ServerSocket listener;
+    private Socket socket;
+    private BufferedReader bufferedReaderInput;
+    private String[] tempWorkPak;
 
     Server2(int port) throws IOException {
         listener = new ServerSocket(port);
         socket = listener.accept();
         // todo put in separate method, try with resouces and catch IOException
-//        outputObject = new ObjectOutputStream(socket.getOutputStream());
-        bufferedReaderinput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        bufferedReaderInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         receiveWork();
         System.out.println("stringList size: " + workPackageList.size());
         handleWorkPackage();
-
-
         sendAnything();
         System.out.println("result sent");
-//        sendResultsBack();
-        // send byteArrayen
-
-
-//        BufferedImage image = new BufferedImage(400, 400, BufferedImage.TYPE_BYTE_GRAY);
-//        image.getRaster().setDataElements(0, 0, 400, 400, subResultArray);
-//
-//        SwingUtilities.invokeLater(new
-//
-//                                           Runnable() {
-//                                               @Override
-//                                               public void run() {
-//                                                   JFrame frame = new JFrame(getClass().getSimpleName());
-//                                                   frame.add(new JLabel(new ImageIcon(image)));
-//                                                   frame.setSize(400, 400);
-//                                                   frame.setResizable(true);
-//                                                   frame.pack();
-//                                                   frame.setLocationRelativeTo(null);
-//                                                   frame.setVisible(true);
-//
-//                                               }
-//                                           });
-
-
     }
 
     private void sendAnything() throws IOException {
-        // pause here until stage is "stage_ready_to_receive"
-
-        stage = bufferedReaderinput.readLine();
+        stage = bufferedReaderInput.readLine();
         System.out.println(stage);
 
-
-
-
-
-//        DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
-
-//        while (!stage.equals("stage_WorkPackages_sent")){
-//
-//        }
         DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
         for (byte[] b : subResultList) {
-//        byte[] message = subResultList.get(0);
-
             dOut.writeInt(b.length);            // write length of the message
             System.out.println("server1 has sent lenght");
             dOut.write(b);                       // write the message
         }
-
-        stage = bufferedReaderinput.readLine();
+        stage = bufferedReaderInput.readLine();
         System.out.println(stage);
     }
 
     // todo här ska all magic ske
-
     public void handleWorkPackage() {
         int counter = 0;
         for (String s : workPackageList) {
             appendVariables(s);
             System.out.println("printat from privat variabel: " + this.min_c_re);
-            // todo här ska beräkning ske i varje iteration
-
-//            populate2dArrayReverse();
-
-
             getSubAreaCoordinates(); // tar bara en subArea
             calculateSubArea();
-//            subResultList
-//            String fileName = "delReaultat" + counter + ".pgm";
-//            try {
-//                createFile(fileName, counter);
-//                counter++;
-//            } catch (FileNotFoundException e){}
-//            System.out.println("fil not fund");
         }
     }
 
     //todo make it dynamic!!!
     public void receiveWork() throws IOException {
         String userInput;
-//        while ((userInput = input.readLine()) != null) {
         for (int i = 0; i < 2; i++) {
-
-
-            userInput = bufferedReaderinput.readLine();
+            userInput = bufferedReaderInput.readLine();
             System.out.println(userInput);
             workPackageList.add(userInput);
         }
-
-        stage = bufferedReaderinput.readLine();
+        stage = bufferedReaderInput.readLine();
         System.out.println(stage);
     }
-
 
     public void appendVariables(String s) {
         this.tempWorkPak = s.split(" ");
@@ -155,111 +85,10 @@ public class Server2 extends Thread {
     }
 
     public static void main(String[] args) throws IOException {
-        Server server1 = new Server(8002);
+        Server server2 = new Server(8002);
     }
-    // not used
-
-    public void mandelCalc(ArrayList<String> input) {
-        int subArrayLenght = (int) (xStepSize * yStepSize);
-        byte[] temp = new byte[subArrayLenght];
-        int[] intArray = new int[subArrayLenght];
-    }
-    // not used
-
-    public int countIterations(double x, double y, int inf_n) {
-        // The Mandelbrot set is represented by coloring
-        // each point (x,y) according to the number of
-        // iterations it takes before the while loop in
-        // this method ends.  For points that are actually
-        // in the Mandelbrot set, or very close to it, the
-        // count will reach the maximum value, 80.  These
-        // points will be colored purple.  All other colors
-        // represent points that are definitely NOT in the set.
-        int count = 0;
-        double zx = x;
-        double zy = y;
-        while (count < inf_n && Math.abs(x) < 100 && Math.abs(zy) < 100) {
-            double new_zx = zx * zx - zy * zy + x;
-            zy = 2 * zx * zy + y;
-            zx = new_zx;
-            count++;
-        }
-        return count;
-    }
-
-    Coordinate[][] twoDInputArray;
-    // obsolete
-
-    public void populate2dArray() {
-
-        double xInterval = Math.abs(max_c_re - min_c_re);
-        double yInterval = Math.abs(max_c_im - min_c_im);
-
-        double tempX = min_c_re;
-        double tempY = max_c_im;
-
-        double xAdd;
-        double ySub;
-
-        int x = (int) xStepSize;
-        int y = (int) yStepSize;
-        subResultArray1D = new int[x * y];
-        subResultArray2D = new int[x][y];
-
-        twoDInputArray = new Coordinate[x][y];
-        for (int i = 0; i < x; i++) {
-            if (i != 0) {
-                xAdd = (xInterval / (x - 1));
-                tempX = tempX + xAdd;
-            }
-            tempY = max_c_im;
-            for (int j = 0; j < y; j++) {
-
-                ySub = (yInterval / (y - 1));
-                tempY = tempY - ySub;
-            }
-        }
-    }
-    // obsolete
-
-    public void populate2dArrayReverse() {
-
-        double xInterval = Math.abs(max_c_re - min_c_re);
-        double yInterval = Math.abs(max_c_im - min_c_im);
-
-        double tempX = min_c_re;
-        double tempY = max_c_im;
-
-        double xAdd;
-        double ySub;
-
-        int x = (int) xStepSize;
-        int y = (int) yStepSize;
-        subResultArray1D = new int[x * y];
-        subResultArray2D = new int[x][y];
-
-        twoDInputArray = new Coordinate[x][y];
-        int counter = 0;
-        for (int i = 0; i < y; i++) {
-            if (i != 0) {
-                ySub = (yInterval / (x - 1));
-                tempY = tempY - ySub;
-            }
-            tempX = min_c_re; // restart x value for the next row
-            for (int j = 0; j < x; j++) {
-                twoDInputArray[i][j] = new Coordinate(tempX, tempY);
-                subResultArray1D[counter] = calculatePoint(tempX, tempY);
-                xAdd = (xInterval / (y - 1));
-                tempX = tempX + xAdd;
-                counter++;
-
-            }
-        }
-    }
-    // subAreaCoordinates
 
     public void getSubAreaCoordinates() {
-
         subAreaCoordinates = null;
         subAreaCoordinates = new ArrayList<>();
         double xInterval = Math.abs(max_c_re - min_c_re);
@@ -274,9 +103,6 @@ public class Server2 extends Thread {
         int x = (int) xStepSize;
         int y = (int) yStepSize;
         subResultArray1D = new int[x * y];
-        subResultArray2D = new int[x][y];
-
-        twoDInputArray = new Coordinate[x][y];
         int counter = 0;
         for (int i = 0; i < y; i++) {
             if (i != 0) {
@@ -285,19 +111,16 @@ public class Server2 extends Thread {
             }
             tempX = min_c_re; // restart x value for the next row
             for (int j = 0; j < x; j++) {
-//                twoDInputArray[i][j] = new Coordinate(tempX, tempY);
                 subAreaCoordinates.add(new Coordinate(tempX, tempY));
                 subResultArray1D[counter] = calculatePoint(tempX, tempY); // remove asap
                 xAdd = (xInterval / (y - 1));
                 tempX = tempX + xAdd;
                 counter++;
-
             }
         }
     }
 
     public void calculateSubArea() {
-
         int arraySize = (int) xStepSize * (int) yStepSize;
         subResultArray = new byte[arraySize];
         int counter = 0;
@@ -312,8 +135,8 @@ public class Server2 extends Thread {
         }
         subResultList.add(subResultArray);
     }
-    // convert no of iterations to signed byte range
 
+    // convert no of iterations to signed byte range
     public byte convertToPGMRangeByte(double input, double inf_n) {
         int pgmMaxValue = 255;
         if (input == 0) return 0;
@@ -339,9 +162,7 @@ public class Server2 extends Thread {
 //                System.out.println("unstable: " + i);
 //                System.out.println("unstable: " + (byte) i + " (castad)");
 //                System.out.println("ostabil byteConverter: " + convertToPGMRangeByte(i)); // todo se hit
-
                 return i;
-
             }
         }
         if (i == ITERATIONS) {
@@ -350,62 +171,7 @@ public class Server2 extends Thread {
 //            System.out.println("ostabil byteConverter: " + convertToByte(ITERATIONS));
             return ITERATIONS;
 //            return (byte) 255;
-
         }
-
         return ITERATIONS;
-    }
-    // obsolete
-
-    public void sendBackSubResult() throws IOException {
-        out = new DataOutputStream(socket.getOutputStream());
-        out.writeInt(subResultArray.length);
-        out.write(subResultArray);
-        out.close();
-    }
-    // obsolete ish
-
-    public void sendResultsBack() throws IOException {
-
-        for (byte[] b : subResultList) {
-            out = new DataOutputStream(socket.getOutputStream());
-            out.writeInt(b.length);
-            out.write(b);
-//            out.close();
-        }
-    }
-
-
-    public void createFile(String filename, int counter) throws FileNotFoundException {
-        int maxvall = 255;
-
-        PrintWriter pw = new PrintWriter(filename);
-        int width = (int) this.xStepSize;
-        int height = (int) this.yStepSize;
-
-        // magic number, width, height, and maxval
-        pw.println("P2");
-        pw.println(width + " " + height);
-        pw.println(maxvall);
-
-        // print out the data, limiting the line lengths to 70 characters
-        int lineLength = 0;
-
-//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
-
-        for (int i = 0; i < subResultList.get(counter).length; i++) {
-            int value = subResultList.get(counter)[i] & 0xff;
-
-            String stringValue = "" + value;
-            int currentLength = stringValue.length() + 1;
-            if (currentLength + lineLength > 70) {
-                pw.println();
-                lineLength = 0;
-            }
-            lineLength += currentLength;
-            pw.print(value + " ");
-        }
-
-        pw.close();
     }
 }

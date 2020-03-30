@@ -13,40 +13,23 @@ public class Client {
     private int y;
     private int inf_n;
     private int devider;
-    byte[] resultArray;
-    Coordinate[][] twoDInputArray;
-    double xStepSize;
-    double yStepSize;
-
-    String userInput;
-    String parameterInputs;
-    ArrayList<String> serverList = new ArrayList<>();
-    ArrayList<Socket> socketList = new ArrayList<>();
-    ArrayList<byte[]> subArrayList = new ArrayList<>();
-//    ArrayList<byte[]> subResultList = new ArrayList<>();
-
-    ArrayList<String> workPackages = new ArrayList<>();
-    ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
-    ArrayList<DataInputStream> dataInputList = new ArrayList<>();
-
-    ArrayList<ArrayList<String>> workPackagesLists = new ArrayList<>();
-
-
-    //    private BufferedReader in;
-    DataInputStream in;
-    private PrintWriter out;
-    private PrintWriter out2;
-    String[] inputArray;
-    String[] serverArray;
-    String exampleInput = "-1 -1 1 1 1024 800 800 2 localhost:8001 localhost:8002";
+    private Coordinate[][] twoDInputArray;
+    private double xStepSize;
+    private double yStepSize;
+    private ArrayList<String> serverList;
+    private ArrayList<Socket> socketList = new ArrayList<>();
+    private ArrayList<byte[]> subArrayList = new ArrayList<>();
+    private ArrayList<String> workPackages = new ArrayList<>();
+    private ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
+    private ArrayList<DataInputStream> dataInputList = new ArrayList<>();
+    private String[] inputArray;
+    private String exampleInput = "-1 -1 1 1 1024 800 800 2 localhost:8001 localhost:8002";
 
     Client() {
         Scanner sc = new Scanner(System.in);
         inputArray = Parser.parse(exampleInput);
         serverList = Parser.separateServers(inputArray);
         this.appendVariables();
-        resultArray = new byte[x * y];
-//        this.createSubArrays();
         System.out.println(subArrayList.size());
         this.prepareWorkload();
 
@@ -54,20 +37,13 @@ public class Client {
 //          String input = sc.nextLine();
             socketList = this.createSockets(serverList);
             connectionOutList = this.createOutStreams(socketList);
-
-//
             dataInputList = createInStreams(socketList);
             devideWorkBetweenServers2();
             System.out.println("utanfor reveic funktion");
             receiveAnything();
             System.out.println("subArrayList: " + subArrayList.size());
             System.out.println("workpackList: " + workPackages.size());
-//            createFile("result.pgm");
             createSubResultImages();
-//            out = new PrintWriter(socket.getOutputStream(), true);
-//            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -112,7 +88,6 @@ public class Client {
         } else System.out.println("Wrong input");
     }
 
-
     public void prepareWorkload() {
         double minX = this.min_c_re;
         double minY = this.min_c_im;
@@ -140,57 +115,6 @@ public class Client {
         }
     }
 
-
-    public void devideWorkBetweenServers() {
-        // todo vill antagligen skicka workpackage i ordning.
-
-        int amountOfServers = socketList.size();        //2
-        int amountOfWorkPackages = workPackages.size(); //4
-        double workPackagesPerServer = workPackages.size() / amountOfServers;
-
-
-        for (int i = 0; i < amountOfWorkPackages; i++) {
-            if (i < workPackagesPerServer) {
-                connectionOutList.get(0).println(workPackages.get(i));
-            }
-            if (i >= workPackagesPerServer) {
-                connectionOutList.get(1).println(workPackages.get(i));
-            }
-        }
-        // todo server tar emot workpack, och behandlar innan tar emot nästa
-
-
-        for (PrintWriter p : connectionOutList) {
-            p.close();
-        }
-    }
-
-    // obsolete
-    public void populate2dArray() {
-        double xInterval = max_c_re - min_c_re;
-        double yInterval = max_c_im - min_c_im;
-
-        double tempX = min_c_re;
-        double tempY = max_c_im;
-
-        double xAdd;
-        double ySub;
-
-        twoDInputArray = new Coordinate[x][y];
-        for (int i = 0; i < x; i++) {
-            if (i != 0) {
-                xAdd = (xInterval / (x - 1));
-                tempX = tempX + xAdd;
-            }
-            tempY = max_c_im;
-            for (int j = 0; j < y; j++) {
-                twoDInputArray[i][j] = new Coordinate(tempX, tempY);
-                ySub = (yInterval / (y - 1));
-                tempY = tempY - ySub;
-            }
-        }
-    }
-
     public ArrayList<DataInputStream> createInStreams(ArrayList<Socket> socketList) throws IOException {
         ArrayList<DataInputStream> inStreams = new ArrayList<>();
         for (int i = 0; i < socketList.size(); i++) {
@@ -199,43 +123,11 @@ public class Client {
         return inStreams;
     }
 
-    // obsolete
-    public void receivSubResults() throws IOException {
-        int amountOfServers = socketList.size();        //2
-        int amountOfWorkPackages = workPackages.size(); //4
-        double workPackagesPerServer = workPackages.size() / amountOfServers;
-// l'gg i subArrayList
-        int workPackCounter = 0;
-        for (int i = 0; i < amountOfWorkPackages; i++) {
-            int length = dataInputList.get(workPackCounter).readInt();                    // read length of incoming message
-            length = 160000;
-            if (length > 0) {
-                byte[] message = new byte[length];
-                dataInputList.get(workPackCounter).readFully(message, 0, message.length); // read the message
-
-            }
-
-//            subArrayList.get(workPackCounter) = dataInputList.get(workPackCounter).readAllBytes();
-
-//            while ((dataInputList.get(workPackCounter).read(subArrayList.get(workPackCounter))) != 0) {
-//                workPackCounter++;
-//
-//                dataInputList.get(workPackCounter).read(subArrayList.get(workPackCounter));
-//
-//                if (workPackCounter == workPackagesPerServer) workPackCounter = 0;
-//            }
-//            subArrayList.get(workPackCounter
-        }
-    }
-
     public void receiveAnything() throws IOException {
 
         for (PrintWriter p : connectionOutList) {
-//            p.close();
             p.println("stage_ready_to_receive");
         }
-        // print writer: "" redy to receive results
-
         System.out.println("inuti receive funktionen!");
         int counter = 0;
 
@@ -250,7 +142,6 @@ public class Client {
             if (counter == dataInputList.size()) counter = 0;
         }
         for (PrintWriter p : connectionOutList) {
-//            p.close();
             p.println("stage_results_received");
         }
     }
@@ -260,7 +151,6 @@ public class Client {
 
         int amountOfServers = socketList.size();        //2
         int amountOfWorkPackages = workPackages.size(); //4
-        double workPackagesPerServer = workPackages.size() / amountOfServers;
 
         int workPackCounter = 0;
         for (int i = 0; i < amountOfWorkPackages; i++) {
@@ -269,18 +159,7 @@ public class Client {
             if (workPackCounter == amountOfServers) workPackCounter = 0;
 
         }
-//            if (i < workPackagesPerServer) {
-//                connectionOutList.get(0).println(workPackages.get(i));
-//            }
-//            if (i >= workPackagesPerServer) {
-//                connectionOutList.get(1).println(workPackages.get(i));
-//            }
-
-        // todo server tar emot workpack, och behandlar innan tar emot nästa
-
-
         for (PrintWriter p : connectionOutList) {
-//            p.close();
             p.println("stage_WorkPackages_sent");
         }
     }
