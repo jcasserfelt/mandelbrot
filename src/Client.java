@@ -12,7 +12,7 @@ public class Client {
     private int x;
     private int y;
     private int inf_n;
-    private int devider;
+    private int divider;
     private Coordinate[][] twoDInputArray;
     private double xStepSize;
     private double yStepSize;
@@ -23,22 +23,22 @@ public class Client {
     private ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
     private ArrayList<DataInputStream> dataInputList = new ArrayList<>();
     private String[] inputArray;
-    private String exampleInput = "-1 -1 1 1 1024 800 800 2 localhost:8001 localhost:8002";
+    private String exampleInput = "-0.76 0.04 -0.75 0.05 1024 2400 2400 2 localhost:8001 localhost:8002";
 
     Client() {
         Scanner sc = new Scanner(System.in);
         inputArray = Parser.parse(exampleInput);
         serverList = Parser.separateServers(inputArray);
         this.appendVariables();
-        System.out.println(subArrayList.size());
-        this.prepareWorkload();
+//        System.out.println(subArrayList.size());
+        this.prepareWorkload();                // new n fresh
 
         try {
 //          String input = sc.nextLine();
-            socketList = this.createSockets(serverList);
-            connectionOutList = this.createOutStreams(socketList);
+            socketList = createSockets(serverList);
+            connectionOutList = createOutStreams(socketList);
             dataInputList = createInStreams(socketList);
-            devideWorkBetweenServers2();
+            divideWorkBetweenServers();
             System.out.println("utanfor reveic funktion");
             receiveAnything();
             System.out.println("subArrayList: " + subArrayList.size());
@@ -50,6 +50,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
+
         Client client = new Client();
     }
 
@@ -79,14 +80,15 @@ public class Client {
             this.inf_n = Integer.parseInt(this.inputArray[4]);
             this.x = Integer.parseInt(this.inputArray[5]);
             this.y = Integer.parseInt(this.inputArray[6]);
-            this.devider = Integer.parseInt(this.inputArray[7]);
+            this.divider = Integer.parseInt(this.inputArray[7]);
 
-            this.xStepSize = Math.floor(this.x / this.devider);
-            this.yStepSize = Math.floor(this.y / this.devider);
+            this.xStepSize = Math.floor(this.x / this.divider);
+            this.yStepSize = Math.floor(this.y / this.divider);
 
 
         } else System.out.println("Wrong input");
     }
+
 
     public void prepareWorkload() {
         double minX = this.min_c_re;
@@ -95,24 +97,33 @@ public class Client {
         double maxY = this.max_c_im;
         String temp = "";
 
-        double xInterval = maxX - minX;
-        double yInterval = maxY - minY;
+        double xInterval = maxX - minX;     // 2
+        double yInterval = maxY - minY;     // 2
 
-        minY = maxY; // for correct decrement for minY after first iteration
-        for (int i = 0; i < devider; i++) {
-            maxY = maxY - ((yInterval / devider) * i);
-            minY = maxY - ((yInterval / devider));
-            for (int j = 0; j < devider; j++) {
-                maxX = minX + ((xInterval / devider) * (j + 1));
-                minX = minX + ((xInterval / devider) * j);
+        double yDiff = yInterval / divider;
+        double xDiff = xInterval / divider;
+
+
+        for (int i = 0; i < divider; i++) {
+            if (i != 0) {
+                maxY = maxY - yDiff;
+            }
+            minY = maxY - yDiff;
+            for (int j = 0; j < divider; j++) {
+                if (j != 0) {
+                    minX = minX + (xDiff);
+                }
+                maxX = minX + xDiff;
 
                 temp = String.format("%f %f %f %f %d %f %f", minX, maxY, maxX, minY, inf_n, xStepSize, yStepSize);
                 workPackages.add(temp);
-//              out.println(temp);
             }
+            // reset x-values
             minX = this.min_c_re;
             maxX = this.max_c_re;
         }
+        System.out.println("check that sweet workpak");
+
     }
 
     public ArrayList<DataInputStream> createInStreams(ArrayList<Socket> socketList) throws IOException {
@@ -146,8 +157,12 @@ public class Client {
         }
     }
 
-    public void devideWorkBetweenServers2() {
-        // todo vill antagligen skicka workpackage i ordning.
+    public void divideWorkBetweenServers() {
+
+        // send intitial message to get through while loop on other end
+        for (PrintWriter p : connectionOutList) {
+            p.println(divider);
+        }
 
         int amountOfServers = socketList.size();        //2
         int amountOfWorkPackages = workPackages.size(); //4
@@ -155,8 +170,10 @@ public class Client {
         int workPackCounter = 0;
         for (int i = 0; i < amountOfWorkPackages; i++) {
             connectionOutList.get(workPackCounter).println(workPackages.get(i));
+            connectionOutList.get(workPackCounter).println("continue");
             workPackCounter++;
             if (workPackCounter == amountOfServers) workPackCounter = 0;
+
 
         }
         for (PrintWriter p : connectionOutList) {
@@ -171,6 +188,7 @@ public class Client {
      * @param filename name of the file to be created
      * @throws FileNotFoundException
      */
+
     // does not work
     public void createFile(String filename) throws FileNotFoundException {
         int maxvall = 255;
@@ -195,19 +213,19 @@ public class Client {
         int indexAdjuster = 0;
         ArrayList<ArrayList<byte[]>> subAreaRows = new ArrayList<>();
         ArrayList<byte[]> tempList = new ArrayList<>();
-        for (int i = 0; i < devider; i++) {
+        for (int i = 0; i < divider; i++) {
 
-            for (int j = 0; j < devider; j++) {
+            for (int j = 0; j < divider; j++) {
                 tempList.add(subArrayList.get(j + indexAdjuster));
             }
             subAreaRows.add(tempList);
-            indexAdjuster = +devider;
+            indexAdjuster = +divider;
             tempList = new ArrayList<>();
         }
 
         for (ArrayList<byte[]> list : subAreaRows) {        // 1 och 2
             for (int i = 1; i <= yStepSize; i++) {
-                for (int j = 0; j < devider; j++) {
+                for (int j = 0; j < divider; j++) {
                     for (int k = 0; k < xStepSize; k++) {
                         testArray[testCounter] = list.get(j)[k * i];
                         testCounter++;

@@ -18,7 +18,7 @@ public class Parser {
 
     public static ArrayList<String> separateServers(String[] inputArray){
         ArrayList<String> serverList = new ArrayList<>();
-        if (inputArray.length > 9){
+        if (inputArray.length > 8){
             for (int i = 8; i < inputArray.length; i++) {
                 serverList.add(inputArray[i]);
             }

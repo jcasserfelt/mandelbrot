@@ -11,7 +11,7 @@ public class Server2 {
     private double max_c_im;
     private int inf_n;
     private byte[] subResultArray;
-    private int[] subResultArray1D;
+    //    private int[] subResultArray1D;
     private double xStepSize;
     private double yStepSize;
     private ArrayList<String> workPackageList = new ArrayList<>();
@@ -24,17 +24,17 @@ public class Server2 {
 
     Server2(int port) throws IOException {
         listener = new ServerSocket(port);
-        socket = listener.accept();
-        // todo put in separate method, try with resouces and catch IOException
-        bufferedReaderInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        receiveWork();
-        System.out.println("stringList size: " + workPackageList.size());
-        handleWorkPackage();
-        sendAnything();
-        System.out.println("result sent");
+        while (true) {
+            socket = listener.accept();
+            // todo put in separate method, try with resouces and catch IOException
+            bufferedReaderInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            receiveWork();
+            handleWorkPackage();
+            sendResults();
+        }
     }
 
-    private void sendAnything() throws IOException {
+    private void sendResults() throws IOException {
         stage = bufferedReaderInput.readLine();
         System.out.println(stage);
 
@@ -61,14 +61,25 @@ public class Server2 {
 
     //todo make it dynamic!!!
     public void receiveWork() throws IOException {
-        String userInput;
-        for (int i = 0; i < 2; i++) {
-            userInput = bufferedReaderInput.readLine();
-            System.out.println(userInput);
-            workPackageList.add(userInput);
+
+
+        String message = bufferedReaderInput.readLine();
+//        int divider = Integer.parseInt(message);
+
+        while (!message.equals("stage_WorkPackages_sent")) {
+
+            message = bufferedReaderInput.readLine();
+            if (message.equals("stage_WorkPackages_sent")) break;
+
+
+//            String userInput;
+//            userInput = bufferedReaderInput.readLine();
+//            System.out.println(message);
+            workPackageList.add(message);
+            message = bufferedReaderInput.readLine();
         }
-        stage = bufferedReaderInput.readLine();
-        System.out.println(stage);
+
+//        System.out.println(stage);
     }
 
     public void appendVariables(String s) {
@@ -85,11 +96,11 @@ public class Server2 {
     }
 
     public static void main(String[] args) throws IOException {
-        Server server2 = new Server(8002);
+        Server2 server2 = new Server2(8002);
     }
 
     public void getSubAreaCoordinates() {
-        subAreaCoordinates = null;
+        subAreaCoordinates = null;  // remove asap
         subAreaCoordinates = new ArrayList<>();
         double xInterval = Math.abs(max_c_re - min_c_re);
         double yInterval = Math.abs(max_c_im - min_c_im);
@@ -102,7 +113,7 @@ public class Server2 {
 
         int x = (int) xStepSize;
         int y = (int) yStepSize;
-        subResultArray1D = new int[x * y];
+//        subResultArray1D = new int[x * y];
         int counter = 0;
         for (int i = 0; i < y; i++) {
             if (i != 0) {
@@ -112,7 +123,7 @@ public class Server2 {
             tempX = min_c_re; // restart x value for the next row
             for (int j = 0; j < x; j++) {
                 subAreaCoordinates.add(new Coordinate(tempX, tempY));
-                subResultArray1D[counter] = calculatePoint(tempX, tempY); // remove asap
+//                subResultArray1D[counter] = calculatePoint(tempX, tempY); // remove asap
                 xAdd = (xInterval / (y - 1));
                 tempX = tempX + xAdd;
                 counter++;
