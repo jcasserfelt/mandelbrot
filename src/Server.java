@@ -4,16 +4,16 @@ import java.net.Socket;
 import java.util.ArrayList;
 
 public class Server {
+    private double min_c_re;                    // min real value
+    private double min_c_im;                    // min imaginary value
+    private double max_c_re;                    // max real value
+    private double max_c_im;                    // max imaginary value
+    private int inf_n;                          // iteration limit
+    private double xStepSize;                   // width resolution sub-area
+    private double yStepSize;                   // height resolution of sub-area
+
     private String stage;
-    private double min_c_re;
-    private double min_c_im;
-    private double max_c_re;
-    private double max_c_im;
-    private int inf_n;
     private byte[] subResultArray;
-    //    private int[] subResultArray1D;
-    private double xStepSize;
-    private double yStepSize;
     private ArrayList<String> workPackageList = new ArrayList<>();
     private ArrayList<Coordinate> subAreaCoordinates = new ArrayList<>();
     private ArrayList<byte[]> subResultList = new ArrayList<>();
@@ -23,65 +23,95 @@ public class Server {
     private String[] tempWorkPak;
 
     Server(int port) throws IOException {
+        // start up a listener
         listener = new ServerSocket(port);
+
+        // will go on for a while
         while (true) {
+            // listen for incoming calls
             socket = listener.accept();
-            // todo put in separate method, try with resouces and catch IOException
+
+            // use connected socket to create BufferedReader,
+            // is used to receive calculation boundaries and statuses
             bufferedReaderInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // receives Strings with information on boundaries etc for
+            // calculations
             receiveWork();
+
+            // look at each received string, parse it to varables,
+            // performe calculations and store results in byte-arrays
             handleWorkPackage();
+
+            // send back back each byte-array
             sendResults();
         }
     }
 
+
+    /**
+     * Sends byte-arrays containing results from calculations.
+     * Each byte-array represents a sub-area in user defined area.
+     */
     private void sendResults() throws IOException {
         stage = bufferedReaderInput.readLine();
-        System.out.println(stage);
 
         DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
         for (byte[] b : subResultList) {
             dOut.writeInt(b.length);            // write length of the message
-//            System.out.println("server1 has sent lenght");
             dOut.write(b);                       // write the message
         }
         stage = bufferedReaderInput.readLine();
-        System.out.println(stage);
     }
 
-    // todo här ska all magic ske
+    /**
+     * Alot going on here, could really use some restructuring
+     * <p>
+     * Iterates over the strings received from Client.
+     * <p>
+     * For each iteration, string is parsed into variables.
+     * variable-values is used to define a set of coordinates.
+     * <p>
+     * The set of coordinates is being iterated over
+     * to calculate result. each coordinate has x and y values for
+     * mandelbrot iteration count.
+     * <p>
+     * For each coordinate, an iteration number is produced. That number
+     * gets converted to signed byte and stored in byte-array.
+     * <p>
+     * One string represents one sub-area, and one byte-array.
+     */
     public void handleWorkPackage() {
         int counter = 0;
         for (String s : workPackageList) {
             appendVariables(s);
-            System.out.println("printat from privat variabel: " + this.min_c_re);
             getSubAreaCoordinates(); // tar bara en subArea
             calculateSubArea();
         }
     }
 
-
+    /**
+     * Receives strings and store them to a list.
+     */
     public void receiveWork() throws IOException {
-
+        // this method could use a little polish..
 
         String message = bufferedReaderInput.readLine();
-//        int divider = Integer.parseInt(message);
-
         while (!message.equals("stage_WorkPackages_sent")) {
 
             message = bufferedReaderInput.readLine();
             if (message.equals("stage_WorkPackages_sent")) break;
 
-
-//            String userInput;
-//            userInput = bufferedReaderInput.readLine();
-//            System.out.println(message);
             workPackageList.add(message);
             message = bufferedReaderInput.readLine();
         }
-
-//        System.out.println(stage);
     }
 
+
+    /**
+     * This need to get more OOP. Needs to throw exception
+     * Parses values from String array into instance variables.
+     */
     public void appendVariables(String s) {
         this.tempWorkPak = s.split(" ");
         for (int i = 0; i < tempWorkPak.length; i++) {
@@ -99,6 +129,17 @@ public class Server {
         Server server1 = new Server(8001);
     }
 
+
+    /**
+     * Generates instances of POJO class Coordinate, and plenty of it.
+     * The purpose is to keep track of correlation of mandelbrot input
+     * parameters (the x and y values), and where that result is being
+     * stored in the result array, and finally where the pixel will be located
+     * in the PGM image.
+     * <p>
+     * The coordinates is being generated from the top-left corner of the
+     * sub-area, then goes one step to the right until end of row.
+     */
     public void getSubAreaCoordinates() {
         subAreaCoordinates = null;
         subAreaCoordinates = new ArrayList<>();
@@ -113,24 +154,29 @@ public class Server {
 
         int x = (int) xStepSize;
         int y = (int) yStepSize;
-//        subResultArray1D = new int[x * y];
-        int counter = 0;
+
+
+        // create x*y coordinates
         for (int i = 0; i < y; i++) {
             if (i != 0) {
                 ySub = (yInterval / (x - 1));
                 tempY = tempY - ySub;
             }
-            tempX = min_c_re; // restart x value for the next row
+            tempX = min_c_re;           // restart x value for the next row
             for (int j = 0; j < x; j++) {
                 subAreaCoordinates.add(new Coordinate(tempX, tempY));
-//                subResultArray1D[counter] = calculatePoint(tempX, tempY); // remove asap
                 xAdd = (xInterval / (y - 1));
                 tempX = tempX + xAdd;
-                counter++;
             }
         }
     }
 
+
+    /**
+     * Goes through all coordinates in current sub-area and use its
+     * values to calculate corresponding amount mandelbrot iterations
+     * Uses convertToPGMRangeByte() to convert integer to signed byte.
+     */
     public void calculateSubArea() {
         int arraySize = (int) xStepSize * (int) yStepSize;
         subResultArray = new byte[arraySize];
@@ -147,7 +193,17 @@ public class Server {
         subResultList.add(subResultArray);
     }
 
-    // convert no of iterations to signed byte range
+    /**
+     * Converts input value to a value ranged 0-255, then
+     * converted to signed byte.
+     * <p>
+     * The purpose of this is that the PGM file format used
+     * has a range from 0-255. Therefore the amount of mandelbrot
+     * iterations must be scaled down to the PGM range proportionally.
+     * <p>
+     * And since the information can be stored in a single byte,
+     * that is the preferred format for transfer over networks.
+     */
     public byte convertToPGMRangeByte(double input, double inf_n) {
         int pgmMaxValue = 255;
         if (input == 0) return 0;
@@ -156,6 +212,13 @@ public class Server {
         return result;
     }
 
+
+    /**
+     * Calculates how many times is takes for a certain point on
+     * the real-imaginary plane to grow out of a certain value (2).
+     *
+     * Returns the amount of iterations, or defined max-iteration
+     */
     public int calculatePoint(double x, double y) {
         int ITERATIONS = this.inf_n;
 
@@ -170,18 +233,12 @@ public class Server {
             y = ny;
 
             if (x * x + y * y > 2) {
-//                System.out.println("unstable: " + i);
-//                System.out.println("unstable: " + (byte) i + " (castad)");
-//                System.out.println("ostabil byteConverter: " + convertToPGMRangeByte(i)); // todo se hit
                 return i;
             }
         }
         if (i == ITERATIONS) {
-//            System.out.println("stable: " + i);
-//            System.out.println("stable: " + (byte) i + "(castad)");
-//            System.out.println("ostabil byteConverter: " + convertToByte(ITERATIONS));
+
             return ITERATIONS;
-//            return (byte) 255;
         }
         return ITERATIONS;
     }

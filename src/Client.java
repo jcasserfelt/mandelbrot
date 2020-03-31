@@ -1,21 +1,20 @@
 import java.io.*;
 import java.net.Socket;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 
 public class Client {
-    private double min_c_re;
-    private double min_c_im;
-    private double max_c_re;
-    private double max_c_im;
-    private int x;
-    private int y;
-    private int inf_n;
-    private int divider;
-    private Coordinate[][] twoDInputArray;
-    private double xStepSize;
-    private double yStepSize;
+    private double min_c_re;              // min real value
+    private double min_c_im;              // min imaginary value
+    private double max_c_re;              // max real value
+    private double max_c_im;              // max imaginary value
+    private int x;                        // width resolution of total area
+    private int y;                        // height resolution of total area
+    private int inf_n;                    // iteration limit
+    private int divider;                  // number of height and width divisions of total area
+    private double xStepSize;             // width resolution of total area
+    private double yStepSize;             // height resolution of total area
     private ArrayList<String> serverList;
     private ArrayList<Socket> socketList = new ArrayList<>();
     private ArrayList<byte[]> subArrayList = new ArrayList<>();
@@ -23,27 +22,43 @@ public class Client {
     private ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
     private ArrayList<DataInputStream> dataInputList = new ArrayList<>();
     private String[] inputArray;
-    private String exampleInput = "-0.76 0.04 -0.75 0.05 1024 2400 2400 2 localhost:8001 localhost:8002";
 
+
+    // Adjust input parameters here!!
+    // See branch system-args-input for a very unrefined implementation.
+    private String exampleInput = "-0.76 0.04 -0.75 0.05 1024 2400 2400 2 localhost:8001 localhost:8002";
     Client() {
-        Scanner sc = new Scanner(System.in);
+
+        // splits user input into separate strings and append to instance variable respectively
         inputArray = Parser.parse(exampleInput);
         serverList = Parser.separateServers(inputArray);
         this.appendVariables();
-//        System.out.println(subArrayList.size());
-        this.prepareWorkload();                // new n fresh
+
+        // divide work load into pieces. ie 2*2, 3*3, ... ,  sub areas in the user defined area.
+        this.prepareWorkload();
 
         try {
-//          String input = sc.nextLine();
+            // when work load is prepared, connect to server(s)
+            // create socket(s) from list of strings like "localhost:8001"
             socketList = createSockets(serverList);
             connectionOutList = createOutStreams(socketList);
             dataInputList = createInStreams(socketList);
+
+            // iterate list of workpack(s), and send them to to server(s)
+            // workpack1 -> server 1, workpack2 -> server2 ...
             divideWorkBetweenServers();
-            System.out.println("utanfor reveic funktion");
-            receiveAnything();
-            System.out.println("subArrayList: " + subArrayList.size());
-            System.out.println("workpackList: " + workPackages.size());
+            System.out.println("Waiting for results");
+
+            // wait to receive result(s) from server(s), same order as sent
+            // each workpack comes back as byte-array.
+            // each byte-array is stored in a list.
+            receiveResult();
+            System.out.println("Results Received");
+
+            // use the received byte-arrays to create PGM images
+            // each image corresponds to a workpack
             createSubResultImages();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -51,9 +66,17 @@ public class Client {
 
     public static void main(String[] args) {
 
+        // all the logic happens in the constructor. This is probably the highest priority to get changed going forward.
         Client client = new Client();
     }
 
+
+    /**
+     * Iterates over a list of strings, hopefully containing something along the lines of "localhost:8001"
+     * Then splits the string at ":" to use for create new Socket
+     * <p>
+     * Amount of sockets will be the same as parameter-list length
+     */
     public ArrayList<Socket> createSockets(ArrayList<String> serverList) throws IOException {
         ArrayList<Socket> sockets = new ArrayList<>();
         for (String s : serverList) {
@@ -61,8 +84,15 @@ public class Client {
             sockets.add(new Socket(temp[0], Integer.parseInt(temp[1])));
         }
         return sockets;
+
     }
 
+
+    /**
+     * Iterates over a list of sockets, creating a new PrintWriter for each socket.
+     * <p>
+     * Amount of PrintWriters will be the same as parameter-list length
+     */
     public ArrayList<PrintWriter> createOutStreams(ArrayList<Socket> socketList) throws IOException {
         ArrayList<PrintWriter> outStreams = new ArrayList<>();
         for (int i = 0; i < socketList.size(); i++) {
@@ -71,6 +101,11 @@ public class Client {
         return outStreams;
     }
 
+
+    /**
+     * This need to get more OOP. Needs to throw exception
+     * Parses values from String array into instance variables.
+     */
     public void appendVariables() {
         if (inputArray.length > 8) {
             this.min_c_re = Double.parseDouble(this.inputArray[0]);
@@ -89,7 +124,15 @@ public class Client {
         } else System.out.println("Wrong input");
     }
 
-
+    /**
+     * Dividing specified work load into specified amount
+     * of sub packages. Using defined outer boundaries and
+     * amount of sub-areas, one can define the sub-areas
+     * boundaries.
+     * <p>
+     * Each sub-area is described in a string and stored
+     * in a list of strings.
+     */
     public void prepareWorkload() {
         double minX = this.min_c_re;
         double minY = this.min_c_im;
@@ -122,10 +165,15 @@ public class Client {
             minX = this.min_c_re;
             maxX = this.max_c_re;
         }
-        System.out.println("check that sweet workpak");
-
     }
 
+    /**
+     * Iterates over a list of sockets, creating a new
+     * DataInputStream for each socket.
+     * <p>
+     * Amount of DataInputStreams will be the same as
+     * parameter-list length
+     */
     public ArrayList<DataInputStream> createInStreams(ArrayList<Socket> socketList) throws IOException {
         ArrayList<DataInputStream> inStreams = new ArrayList<>();
         for (int i = 0; i < socketList.size(); i++) {
@@ -134,20 +182,32 @@ public class Client {
         return inStreams;
     }
 
-    public void receiveAnything() throws IOException {
 
+    /**
+     * Writes and listens according to Server class
+     * method sendResults()
+     * <p>
+     * Amount of received byte-arrays will be the
+     * same as user defined division*division
+     * ie the amount of workpackages
+     * <p>
+     * Store byte-arrays in a list
+     */
+    public void receiveResult() throws IOException {
+
+        // send status to all servers
         for (PrintWriter p : connectionOutList) {
             p.println("stage_ready_to_receive");
         }
-        System.out.println("inuti receive funktionen!");
-        int counter = 0;
 
+        // receive result1 from server1, result2 from server2, ...
+        int counter = 0;
         for (int i = 0; i < workPackages.size(); i++) {
             int length = dataInputList.get(counter).readInt();
             if (length > 0) {
-                byte[] message = new byte[length];
-                dataInputList.get(counter).readFully(message, 0, message.length); // read the message
-                subArrayList.add(message);
+                byte[] result = new byte[length];
+                dataInputList.get(counter).readFully(result, 0, result.length); // read the result
+                subArrayList.add(result);
             }
             counter++;
             if (counter == dataInputList.size()) counter = 0;
@@ -157,6 +217,15 @@ public class Client {
         }
     }
 
+
+    /**
+     * Sends out workload to user defined server(s)
+     * Workload is sent as a prepared string which describes
+     * boundaries.
+     * <p>
+     * Also send status to receiving end which is
+     * Server class method receiveWork()
+     */
     public void divideWorkBetweenServers() {
 
         // send intitial message to get through while loop on other end
@@ -164,8 +233,8 @@ public class Client {
             p.println(divider);
         }
 
-        int amountOfServers = socketList.size();        //2
-        int amountOfWorkPackages = workPackages.size(); //4
+        int amountOfServers = socketList.size();            //2
+        int amountOfWorkPackages = workPackages.size();     //4
 
         int workPackCounter = 0;
         for (int i = 0; i < amountOfWorkPackages; i++) {
@@ -173,21 +242,75 @@ public class Client {
             connectionOutList.get(workPackCounter).println("continue");
             workPackCounter++;
             if (workPackCounter == amountOfServers) workPackCounter = 0;
-
-
         }
+
         for (PrintWriter p : connectionOutList) {
             p.println("stage_WorkPackages_sent");
         }
     }
 
-
     /**
-     * Creates a PGM file from the given image.
+     * Creates PGM image from each workpack-result received.
+     * The results are byte-arrays with signes bytes.
+     * To convert signed byte value to integer, use bit operation: & 0xff.
+     * ie (((byte)-127) & 0xff) == 255
      *
-     * @param filename name of the file to be created
-     * @throws FileNotFoundException
+     * Image is named dynamically (nice) and stored in project folder for now.
+     *
      */
+    public void createSubResultImages() throws IOException {
+        int counter = 0;
+        for (byte[] b : subArrayList) {
+            int maxvall = 255;
+            String filename = "subResult" + (counter + 1) + ".pgm";
+            String key = "subResult";
+//            File file = File.createTempFile(key,".pgm",new File("Results"));
+            File file = new File("Results" + File.separator + filename);
+
+
+            PrintWriter pw = new PrintWriter(file);
+            int width = (int) this.xStepSize;
+            int height = (int) this.yStepSize;
+
+            // magic number, width, height, and maxval
+            pw.println("P2");
+            pw.println(width + " " + height);
+            pw.println(maxvall);
+
+            // print out the data, limiting the line lengths to 70 characters
+            int lineLength = 0;
+
+//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
+
+            for (int i = 0; i < b.length; i++) {
+                int value = subArrayList.get(counter)[i] & 0xff;
+
+                String stringValue = "" + value;
+                int currentLength = stringValue.length() + 1;
+                if (currentLength + lineLength > 70) {
+                    pw.println();
+                    lineLength = 0;
+                }
+                lineLength += currentLength;
+                pw.print(value + " ");
+            }
+            pw.close();
+            counter++;
+        }
+    }
+
+
+
+    // todo: fix these
+    // I havnt got the functionality to combine multiple
+    // sub-results and render them in to a combined image.
+
+    // See Combined Result Render Fails in project folder.
+    // Result6.pgm is the result when just iterate over
+    // all received sub-results in reveived order.
+
+    // I have tried to go through each row this.divider times
+    // but that created carnage like result4 and 5 in fail-folder.
 
     // does not work
     public void createFile(String filename) throws FileNotFoundException {
@@ -279,47 +402,6 @@ public class Client {
                 System.out.println("out of bounce vid index: " + testCounter);
             }
             pw.close();
-        }
-    }
-
-    public void createSubResultImages() throws IOException {
-        int counter = 0;
-        for (byte[] b : subArrayList) {
-            int maxvall = 255;
-            String filename = "subResult" + (counter + 1) + ".pgm";
-            String key = "subResult";
-//            File file = File.createTempFile(key,".pgm",new File("Results"));
-            File file = new File("Results" + File.separator + filename);
-
-
-            PrintWriter pw = new PrintWriter(file);
-            int width = (int) this.xStepSize;
-            int height = (int) this.yStepSize;
-
-            // magic number, width, height, and maxval
-            pw.println("P2");
-            pw.println(width + " " + height);
-            pw.println(maxvall);
-
-            // print out the data, limiting the line lengths to 70 characters
-            int lineLength = 0;
-
-//        int imagesize = this.subArrayList.size() * subArrayList.get(0).length;
-
-            for (int i = 0; i < b.length; i++) {
-                int value = subArrayList.get(counter)[i] & 0xff;
-
-                String stringValue = "" + value;
-                int currentLength = stringValue.length() + 1;
-                if (currentLength + lineLength > 70) {
-                    pw.println();
-                    lineLength = 0;
-                }
-                lineLength += currentLength;
-                pw.print(value + " ");
-            }
-            pw.close();
-            counter++;
         }
     }
 
