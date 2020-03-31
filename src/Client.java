@@ -26,25 +26,26 @@ public class Client {
     private ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
     private ArrayList<DataInputStream> dataInputList = new ArrayList<>();
     private String[] inputArray;
-    private String exampleInput = "-0.76 0.04 -0.75 0.05 1024 4800 4800 4 localhost:8001 localhost:8002";
+    private String exampleInput = "-1 -1 1 1 1024 800 800 2 localhost:8001 localhost:8002";
 
+    // min_c_re min_c_im max_c_re max_c_im max_n x y divisions list-of-servers
 
     public static void main(String[] args) {
         if (args.length < 9) {
-            System.out.println("Not enought input parameters");
+            System.out.println("Not enough input parameters");
             return;
         }
         try {
             String input = createInputString(args);
             ArrayList<String> serverList99 = separateServers(args);
-            try {
-                Client client = new Client(input, serverList99);
-            } catch (
-                    IOException e) {
-                e.printStackTrace();
-            }
+            Client client = new Client(input, serverList99);
+
+
         } catch (NumberFormatException e) {
             System.out.println("Wrong input format");
+        } catch (
+                IOException e) {
+            e.printStackTrace();
         }
 
 
@@ -126,6 +127,7 @@ public class Client {
     public void appendVariables() {
         if (inputArray.length > 7) {
             this.min_c_re = Double.valueOf(this.inputArray[0].replace(",", "."));
+            this.min_c_im = Double.valueOf(this.inputArray[1].replace(",", "."));
             this.max_c_re = Double.valueOf(this.inputArray[2].replace(",", "."));
             this.max_c_im = Double.valueOf(this.inputArray[3].replace(",", "."));
             this.inf_n = Integer.parseInt(this.inputArray[4].replace(",", "."));
