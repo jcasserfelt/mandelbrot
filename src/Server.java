@@ -22,6 +22,10 @@ public class Server {
     private BufferedReader bufferedReaderInput;
     private String[] tempWorkPak;
 
+    public static void main(String[] args) throws IOException {
+        Server server1 = new Server(8001);
+    }
+
     Server(int port) throws IOException {
         listener = new ServerSocket(port);
         while (true) {
@@ -47,8 +51,8 @@ public class Server {
         stage = bufferedReaderInput.readLine();
         System.out.println(stage);
     }
-
     // todo här ska all magic ske
+
     public void handleWorkPackage() {
         int counter = 0;
         for (String s : workPackageList) {
@@ -61,25 +65,17 @@ public class Server {
 
 
     public void receiveWork() throws IOException {
-
-
         String message = bufferedReaderInput.readLine();
-//        int divider = Integer.parseInt(message);
 
         while (!message.equals("stage_WorkPackages_sent")) {
-
             message = bufferedReaderInput.readLine();
             if (message.equals("stage_WorkPackages_sent")) break;
-
-
 //            String userInput;
 //            userInput = bufferedReaderInput.readLine();
 //            System.out.println(message);
             workPackageList.add(message);
             message = bufferedReaderInput.readLine();
         }
-
-//        System.out.println(stage);
     }
 
     public void appendVariables(String s) {
@@ -93,10 +89,6 @@ public class Server {
             this.xStepSize = Double.parseDouble(tempWorkPak[5].replace(",", "."));
             this.yStepSize = Double.parseDouble(tempWorkPak[6].replace(",", "."));
         }
-    }
-
-    public static void main(String[] args) throws IOException {
-        Server server1 = new Server(8001);
     }
 
     public void getSubAreaCoordinates() {

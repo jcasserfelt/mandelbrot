@@ -1,6 +1,9 @@
+import org.w3c.dom.ls.LSOutput;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.Scanner;
 
 
@@ -23,12 +26,57 @@ public class Client {
     private ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
     private ArrayList<DataInputStream> dataInputList = new ArrayList<>();
     private String[] inputArray;
-    private String exampleInput = "-0.76 0.04 -0.75 0.05 1024 2400 2400 2 localhost:8001 localhost:8002";
+    private String exampleInput = "-0.76 0.04 -0.75 0.05 1024 4800 4800 4 localhost:8001 localhost:8002";
 
-    Client() {
+
+    public static void main(String[] args) {
+        if (args.length < 9) {
+            System.out.println("Not enought input parameters");
+            return;
+        }
+        try {
+            String input = createInputString(args);
+            ArrayList<String> serverList99 = separateServers(args);
+            try {
+                Client client = new Client(input, serverList99);
+            } catch (
+                    IOException e) {
+                e.printStackTrace();
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Wrong input format");
+        }
+
+
+    }
+
+    public static String createInputString(String[] input) throws NumberFormatException {
+        String result;
+
+        double min_c_re = Double.parseDouble(input[0]);
+        double min_c_im = Double.parseDouble(input[1]);
+        double max_c_re = Double.parseDouble(input[2]);
+        double max_c_im = Double.parseDouble(input[3]);
+        int inf_n = Integer.parseInt(input[4]);
+        int x = Integer.parseInt(input[5]);
+        int y = Integer.parseInt(input[6]);
+        int divider = Integer.parseInt(input[7]);
+
+        result = String.format("%f %f %f %f %d %d %d %d", min_c_re, min_c_im, max_c_re, max_c_im, inf_n, x, y, divider);
+        // "-0.76 0.04 -0.75 0.05 1024 4800 4800 4 localhost:8001 localhost:8002";
+        // min_c_re min_c_im max_c_re max_c_im max_n x y divisions list-of-servers
+        return result;
+    }
+
+
+    Client(String values, ArrayList<String> servers) throws IOException {
+        exampleInput = values;
+        serverList = servers;
+
+        this.inputArray = Parser.parse(exampleInput);
+//        serverList = Parser.separateServers(inputArray);
+
         Scanner sc = new Scanner(System.in);
-        inputArray = Parser.parse(exampleInput);
-        serverList = Parser.separateServers(inputArray);
         this.appendVariables();
 //        System.out.println(subArrayList.size());
         this.prepareWorkload();                // new n fresh
@@ -44,14 +92,18 @@ public class Client {
             System.out.println("subArrayList: " + subArrayList.size());
             System.out.println("workpackList: " + workPackages.size());
             createSubResultImages();
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void main(String[] args) {
+    public static ArrayList<String> separateServers(String[] inputArray) {
+        ArrayList<String> serverList = new ArrayList<>();
+        for (int i = 8; i < inputArray.length; i++) {
+            serverList.add(inputArray[i]);
+        }
 
-        Client client = new Client();
+        return serverList;
     }
 
     public ArrayList<Socket> createSockets(ArrayList<String> serverList) throws IOException {
@@ -72,12 +124,11 @@ public class Client {
     }
 
     public void appendVariables() {
-        if (inputArray.length > 8) {
-            this.min_c_re = Double.parseDouble(this.inputArray[0]);
-            this.min_c_im = Double.parseDouble(this.inputArray[1]);
-            this.max_c_re = Double.parseDouble(this.inputArray[2]);
-            this.max_c_im = Double.parseDouble(this.inputArray[3]);
-            this.inf_n = Integer.parseInt(this.inputArray[4]);
+        if (inputArray.length > 7) {
+            this.min_c_re = Double.valueOf(this.inputArray[0].replace(",", "."));
+            this.max_c_re = Double.valueOf(this.inputArray[2].replace(",", "."));
+            this.max_c_im = Double.valueOf(this.inputArray[3].replace(",", "."));
+            this.inf_n = Integer.parseInt(this.inputArray[4].replace(",", "."));
             this.x = Integer.parseInt(this.inputArray[5]);
             this.y = Integer.parseInt(this.inputArray[6]);
             this.divider = Integer.parseInt(this.inputArray[7]);

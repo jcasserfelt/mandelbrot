@@ -22,6 +22,10 @@ public class Server2 {
     private BufferedReader bufferedReaderInput;
     private String[] tempWorkPak;
 
+    public static void main(String[] args) throws IOException {
+        Server2 server2 = new Server2(8002);
+    }
+
     Server2(int port) throws IOException {
         listener = new ServerSocket(port);
         while (true) {
@@ -47,8 +51,8 @@ public class Server2 {
         stage = bufferedReaderInput.readLine();
         System.out.println(stage);
     }
-
     // todo här ska all magic ske
+
     public void handleWorkPackage() {
         int counter = 0;
         for (String s : workPackageList) {
@@ -58,8 +62,8 @@ public class Server2 {
             calculateSubArea();
         }
     }
-
     //todo make it dynamic!!!
+
     public void receiveWork() throws IOException {
 
 
@@ -93,10 +97,6 @@ public class Server2 {
             this.xStepSize = Double.parseDouble(tempWorkPak[5].replace(",", "."));
             this.yStepSize = Double.parseDouble(tempWorkPak[6].replace(",", "."));
         }
-    }
-
-    public static void main(String[] args) throws IOException {
-        Server2 server2 = new Server2(8002);
     }
 
     public void getSubAreaCoordinates() {
