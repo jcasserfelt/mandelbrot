@@ -23,13 +23,11 @@ public class Server2 {
     private String[] tempWorkPak;
 
     public static void main(String[] args) throws IOException {
-        Server2 server2 = new Server2(8002);
+        Server2 server2 = new Server2();
+        server2.startLogic(8002);
     }
 
-    Server2(int port) throws IOException {
-        while (true) {
-            startLogic(port);
-        }
+    Server2() {
     }
 
     public void startLogic(int port) throws IOException {

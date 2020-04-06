@@ -18,7 +18,8 @@ public class Client {
     private ArrayList<byte[]> subArrayList = new ArrayList<>();
     private ArrayList<PrintWriter> connectionOutList = new ArrayList<>();
 
-
+    // example input for program arguments:
+    // -1 -1 1 1 256 1200 1200 2 localhost:8001 localhost:8002
 
     public static void main(String[] args) {
 
@@ -50,7 +51,6 @@ public class Client {
 
     Client() {
     }
-
 
     public String validateMandelbrotInput(String[] input) throws NumberFormatException {
         this.min_c_re = Double.parseDouble(input[0]);
@@ -147,7 +147,6 @@ public class Client {
                 maxX = minX + xDiff;
 
                 temp = String.format("%f %f %f %f %d %f %f", minX, minY, maxX, maxY, inf_n, xStepSize, yStepSize);
-//                workPackages2.add(temp);
                 workPacksArray[counter] = temp;
                 counter++;
             }
@@ -187,10 +186,6 @@ public class Client {
     // todo consider only passing in socket rather than streams
     public byte[][] receiveResult2(PrintWriter[] outputSteams, DataInputStream[] inputStreams, int numberOfWorkPacks) throws IOException {
         byte[][] subResults = new byte[divider * divider][];
-        // send status to all servers
-//        for (PrintWriter p : connectionOutList) {
-//            p.println("stage_ready_to_receive");
-//        }
 
         for (int i = 0; i < outputSteams.length; i++) {
             outputSteams[i].println("stage_ready_to_receive");
@@ -251,6 +246,7 @@ public class Client {
      */
     // todo implement try with resources riiight here,
     public void createSubResultImages2(byte[][] subResults, double xStepSize, double yStepSize) {
+        // check if data matches intended image-size
         if (subResults[0].length != xStepSize * yStepSize) throw new InputMismatchException();
 
         for (int i = 0; i < subResults.length; i++) {

@@ -22,14 +22,11 @@ public class Server {
     private String[] tempWorkPak;
 
     public static void main(String[] args) throws IOException {
-        Server server1 = new Server(8001);
-//        server1.startLogic(); ska startas sa here
+        Server server1 = new Server();
+        server1.startLogic(8001);
     }
 
-    Server(int port) throws IOException {
-        while (true) {
-            startLogic(port);
-        }
+    Server() {
     }
 
     public void startLogic(int port) throws IOException {
