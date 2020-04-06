@@ -17,15 +17,23 @@ public class Server2 {
     private ArrayList<String> workPackageList = new ArrayList<>();
     private ArrayList<Coordinate> subAreaCoordinates = new ArrayList<>();
     private ArrayList<byte[]> subResultList = new ArrayList<>();
-    private ServerSocket listener;
+
     private Socket socket;
     private BufferedReader bufferedReaderInput;
     private String[] tempWorkPak;
 
-    Server2(int port) throws IOException {
-        // start up a listener
-        listener = new ServerSocket(port);
+    public static void main(String[] args) throws IOException {
+        Server2 server2 = new Server2(8002);
+    }
 
+    Server2(int port) throws IOException {
+        while (true) {
+            startLogic(port);
+        }
+    }
+
+    public void startLogic(int port) throws IOException {
+        ServerSocket listener = new ServerSocket(port);
         // will go on for a while
         while (true) {
             // listen for incoming calls
@@ -35,19 +43,16 @@ public class Server2 {
             // is used to receive calculation boundaries and statuses
             bufferedReaderInput = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-            // receives Strings with information on boundaries etc for
-            // calculations
-            receiveWork();
+            ArrayList<String> workPacks = receiveWork2(bufferedReaderInput);
 
             // look at each received string, parse it to varables,
             // performe calculations and store results in byte-arrays
-            handleWorkPackage();
+            ArrayList<byte[]> subResultList = handleWorkPackage2(workPacks);
 
             // send back back each byte-array
-            sendResults();
+            sendResults2(subResultList, bufferedReaderInput, socket);
         }
     }
-
 
     /**
      * Sends byte-arrays containing results from calculations.
@@ -59,7 +64,18 @@ public class Server2 {
         DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
         for (byte[] b : subResultList) {
             dOut.writeInt(b.length);            // write length of the message
-            dOut.write(b);                       // write the message
+            dOut.write(b);                      // write the message
+        }
+        stage = bufferedReaderInput.readLine();
+    }
+
+    private void sendResults2(ArrayList<byte[]> subResultList, BufferedReader bufferedReaderInput, Socket socket) throws IOException {
+        stage = bufferedReaderInput.readLine();
+
+        DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
+        for (byte[] b : subResultList) {
+            dOut.writeInt(b.length);            // write length of the message
+            dOut.write(b);                      // write the message
         }
         stage = bufferedReaderInput.readLine();
     }
@@ -90,6 +106,27 @@ public class Server2 {
         }
     }
 
+    public ArrayList<byte[]> handleWorkPackage2(ArrayList<String> workPacks) {
+        ArrayList<byte[]> subResultList = new ArrayList<>();
+
+        for (String s : workPacks) {
+            this.tempWorkPak = s.split(" ");
+
+            // appendVariables for current workpack
+            double min_c_re = Double.parseDouble(tempWorkPak[0].replace(",", "."));
+            double min_c_im = Double.parseDouble(tempWorkPak[1].replace(",", "."));
+            double max_c_re = Double.parseDouble(tempWorkPak[2].replace(",", "."));
+            double max_c_im = Double.parseDouble(tempWorkPak[3].replace(",", "."));
+            int inf_n = Integer.parseInt(tempWorkPak[4]);
+            double xStepSize = Double.parseDouble(tempWorkPak[5].replace(",", "."));
+            double yStepSize = Double.parseDouble(tempWorkPak[6].replace(",", "."));
+
+            ArrayList<Coordinate> subAreaCoordinates2 = getSubAreaCoordinates2(min_c_re, min_c_im, max_c_re, max_c_im, xStepSize, yStepSize); // tar bara en subArea
+            subResultList.add(calculateSubArea2(subAreaCoordinates2, inf_n));
+        }
+        return subResultList;
+    }
+
     /**
      * Receives strings and store them to a list.
      */
@@ -107,6 +144,24 @@ public class Server2 {
         }
     }
 
+    // worked on
+    public ArrayList<String> receiveWork2(BufferedReader input) throws IOException {
+        ArrayList<String> workPacks = new ArrayList<>();
+        // this method could use a little polish..
+
+        String message = "";
+        while (!message.equals("stage_WorkPackages_sent")) {
+
+            message = input.readLine();
+            if (message.equals("stage_WorkPackages_sent")) {
+                return workPacks;
+            }
+            workPacks.add(message);
+            message = input.readLine();
+        }
+        return workPacks;
+    }
+
 
     /**
      * This need to get more OOP. Needs to throw exception
@@ -122,11 +177,8 @@ public class Server2 {
             this.inf_n = Integer.parseInt(tempWorkPak[4]);
             this.xStepSize = Double.parseDouble(tempWorkPak[5].replace(",", "."));
             this.yStepSize = Double.parseDouble(tempWorkPak[6].replace(",", "."));
-        }
-    }
 
-    public static void main(String[] args) throws IOException {
-        Server2 server2 = new Server2(8002);
+        }
     }
 
 
@@ -172,6 +224,40 @@ public class Server2 {
     }
 
 
+    // worked on
+    public ArrayList<Coordinate> getSubAreaCoordinates2(double min_c_re, double min_c_im, double max_c_re, double max_c_im, double xStepSize, double yStepSize) {
+        ArrayList<Coordinate> coordinates = new ArrayList<>();
+
+        double xInterval = Math.abs(max_c_re - min_c_re);
+        double yInterval = Math.abs(max_c_im - min_c_im);
+
+        double tempX = min_c_re;
+        double tempY = max_c_im;
+
+        double xAdd;
+        double ySub;
+
+        int x = (int) xStepSize;
+        int y = (int) yStepSize;
+
+
+        // create x*y coordinates
+        for (int i = 0; i < y; i++) {
+            if (i != 0) {
+                ySub = (yInterval / (x - 1));
+                tempY = tempY - ySub;
+            }
+            tempX = min_c_re;           // restart x value for the next row
+            for (int j = 0; j < x; j++) {
+                coordinates.add(new Coordinate(tempX, tempY));
+                xAdd = (xInterval / (y - 1));
+                tempX = tempX + xAdd;
+            }
+        }
+        return coordinates;
+    }
+
+
     /**
      * Goes through all coordinates in current sub-area and use its
      * values to calculate corresponding amount mandelbrot iterations
@@ -183,7 +269,9 @@ public class Server2 {
         int counter = 0;
         try {
             for (Coordinate tempCoordinate : this.subAreaCoordinates) {
+                int temp = calculatePoint(tempCoordinate.x, tempCoordinate.y);
                 subResultArray[counter] = this.convertToPGMRangeByte(calculatePoint(tempCoordinate.x, tempCoordinate.y), inf_n);
+//                subResultArray[counter] = this.convertToPGMRangeByte(temp, inf_n);
                 counter++;
             }
         } catch (IndexOutOfBoundsException e) {
@@ -191,6 +279,27 @@ public class Server2 {
             e.printStackTrace();
         }
         subResultList.add(subResultArray);
+    }
+
+
+    // kolla var subResultList ar anvand, skulle nog passa battre som
+    public byte[] calculateSubArea2(ArrayList<Coordinate> coordinates, int inf_n) {
+        int arraySize = coordinates.size();
+        byte[] subResultArray = new byte[arraySize];
+        int counter = 0;
+        try {
+            for (Coordinate tempCoordinate : coordinates) {
+                int temp = calculatePoint(tempCoordinate.x, tempCoordinate.y); // remove
+                subResultArray[counter] = this.convertToPGMRangeByte(calculatePoint2(tempCoordinate.x, tempCoordinate.y, inf_n), inf_n);
+//                subResultArray[counter] = this.convertToPGMRangeByte(temp, inf_n);
+                counter++;
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("Index vid outofbounce: " + counter);
+            e.printStackTrace();
+        }
+//        subResultList.add(subResultArray);
+        return subResultArray;
     }
 
     /**
@@ -204,11 +313,14 @@ public class Server2 {
      * And since the information can be stored in a single byte,
      * that is the preferred format for transfer over networks.
      */
+    // is this method completely redundant?
     public byte convertToPGMRangeByte(double input, double inf_n) {
         int pgmMaxValue = 255;
         if (input == 0) return 0;
         double coefficient = pgmMaxValue / inf_n;
+        double temp = (Math.floor(input * coefficient) + 1);
         byte result = (byte) (Math.floor(input * coefficient) + 1);
+
         return result;
     }
 
@@ -216,7 +328,7 @@ public class Server2 {
     /**
      * Calculates how many times is takes for a certain point on
      * the real-imaginary plane to grow out of a certain value (2).
-     *
+     * <p>
      * Returns the amount of iterations, or defined max-iteration
      */
     public int calculatePoint(double x, double y) {
@@ -226,12 +338,13 @@ public class Server2 {
         double cy = y;
 
         int i = 0;
-        for (i = 0; i < ITERATIONS; i++) {
+        for (i = 1; i <= ITERATIONS; i++) {
             double nx = x * x - y * y + cx;
             double ny = 2 * x * y + cy;
             x = nx;
             y = ny;
 
+            double resultValue = x * x + y * y;
             if (x * x + y * y > 2) {
                 return i;
             }
@@ -241,5 +354,28 @@ public class Server2 {
             return ITERATIONS;
         }
         return ITERATIONS;
+    }
+
+    public int calculatePoint2(double x, double y, int iterations) {
+
+        double cx = x;
+        double cy = y;
+
+        int i = 0;
+        for (i = 1; i <= iterations; i++) {
+            double nx = x * x - y * y + cx;
+            double ny = 2 * x * y + cy;
+            x = nx;
+            y = ny;
+
+            double resultValue = x * x + y * y;
+            if (x * x + y * y > 2) {
+                return i;
+            }
+        }
+        if (i == iterations) {
+            return iterations;
+        }
+        return iterations;
     }
 }
