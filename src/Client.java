@@ -238,7 +238,7 @@ public class Client {
 
     /**
      * Creates PGM image from each workpack-result received.
-     * The results are byte-arrays with signes bytes.
+     * The results are byte-arrays with signed bytes.
      * To convert signed byte value to integer, use bit operation: & 0xff.
      * ie (((byte)-127) & 0xff) == 255
      * <p>

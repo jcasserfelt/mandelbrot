@@ -1,5 +1,5 @@
 # mandelbrot
-This is a code test that calculate and render the mandelbrot set. The workload can be divided between several servers, speeding up the calculation time and achieving parallelism if you so will. 
+This is a code challenge that calculate and render the mandelbrot set. The workload can be divided between several servers, speeding up the calculation time and achieving parallelism if you so will. 
 
 To run the program:
 
